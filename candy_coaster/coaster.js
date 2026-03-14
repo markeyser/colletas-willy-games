@@ -1,6 +1,41 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+// --- Dynamic Canvas Resizing ---
+const DESIGN_W = 820;
+const DESIGN_H = 520;
+
+function resizeCanvas() {
+    const container = document.querySelector('.game-container');
+    const controls = document.getElementById('touch-controls');
+    const isMobile = window.innerWidth <= 1024;
+
+    const controlsH = isMobile ? controls.offsetHeight : 0;
+    const availW = container.clientWidth;
+    const availH = container.clientHeight - controlsH - 100; // room for title/ui
+
+    const scaleX = availW / DESIGN_W;
+    const scaleY = availH / DESIGN_H;
+    const scale = Math.min(scaleX, scaleY, 1.0); // Don't scale up past design size on desktop
+
+    canvas.width = Math.floor(DESIGN_W * scale);
+    canvas.height = Math.floor(DESIGN_H * scale);
+
+    canvas.style.width = canvas.width + 'px';
+    canvas.style.height = canvas.height + 'px';
+
+    // Re-init clouds to new dimensions
+    if (clouds.length) {
+        clouds.forEach(c => {
+            c.x = Math.random() * canvas.width;
+            c.y = (40 + Math.random() * 160) * (canvas.height / DESIGN_H);
+        });
+    }
+}
+
+window.addEventListener('resize', resizeCanvas);
+window.addEventListener('orientationchange', () => { setTimeout(resizeCanvas, 150); });
+
 // UI
 const score1Display = document.getElementById('score1');
 const score2Display = document.getElementById('score2');
@@ -71,9 +106,16 @@ const parallaxLayers = [
 ];
 
 const players = [
-  createPlayer(canvas.width * 0.28, 'Collets', '#8b5a2b', { left: 'a', right: 'd' }),
-  createPlayer(canvas.width * 0.72, 'Willy', '#6f4e37', { left: 'ArrowLeft', right: 'ArrowRight' }),
+  createPlayer(0, 'Collets', '#8b5a2b', { left: 'a', right: 'd' }),
+  createPlayer(0, 'Willy', '#6f4e37', { left: 'ArrowLeft', right: 'ArrowRight' }),
 ];
+
+function resetPlayerPositions() {
+    players[0].x = canvas.width * 0.28;
+    players[0].y = trackHeight(players[0].x) - players[0].height;
+    players[1].x = canvas.width * 0.72;
+    players[1].y = trackHeight(players[1].x) - players[1].height;
+}
 
 function createPlayer(x, name, color, controls) {
   return {
@@ -108,9 +150,9 @@ function trackSlope(x) {
 }
 
 function resetGame() {
+  resizeCanvas(); // Ensure sizing is fresh
+  resetPlayerPositions();
   players.forEach((p, idx) => {
-    p.x = canvas.width * (idx === 0 ? 0.28 : 0.72);
-    p.y = trackHeight(p.x) - p.height;
     p.score = 0;
     p.speed = PLAYER_BASE_SPEED;
     if (p.boostTimer) clearTimeout(p.boostTimer);
@@ -740,6 +782,8 @@ startBtn.addEventListener('click', () => {
     startCountdown();
 });
 
+resizeCanvas();
+resetPlayerPositions();
 setupTouchControls();
 // resetGame(); - Wait for button
 // startCountdown(); - Wait for button

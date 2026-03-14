@@ -1,6 +1,38 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+// --- Dynamic Canvas Resizing ---
+const DESIGN_W = 700;
+const DESIGN_H = 500;
+
+function resizeCanvas() {
+    const container = document.querySelector('.game-container');
+    const controls = document.getElementById('touch-controls');
+    const isMobile = window.innerWidth <= 1024;
+
+    const controlsH = isMobile ? controls.offsetHeight : 0;
+    const availW = container.clientWidth;
+    const availH = container.clientHeight - controlsH - 120; // room for title/ui
+
+    const scaleX = availW / DESIGN_W;
+    const scaleY = availH / DESIGN_H;
+    const scale = Math.min(scaleX, scaleY, 1.0); // Don't scale up past design size
+
+    canvas.width = Math.floor(DESIGN_W * scale);
+    canvas.height = Math.floor(DESIGN_H * scale);
+
+    canvas.style.width = canvas.width + 'px';
+    canvas.style.height = canvas.height + 'px';
+
+    // Update parallax layers Y position
+    parallaxLayers[0].y = canvas.height - 120 * scale;
+    parallaxLayers[1].y = canvas.height - 80 * scale;
+    parallaxLayers[2].y = canvas.height - 40 * scale;
+}
+
+window.addEventListener('resize', resizeCanvas);
+window.addEventListener('orientationchange', () => { setTimeout(resizeCanvas, 150); });
+
 // --- DOM Elements ---
 const score1Display = document.getElementById('score1');
 const score2Display = document.getElementById('score2');
@@ -20,8 +52,7 @@ const bonkSound = document.getElementById('bonkSound');
 // const music = document.getElementById('music'); // Uncomment for background music
 
 // --- Game Constants ---
-const CANVAS_WIDTH = canvas.width;
-const CANVAS_HEIGHT = canvas.height;
+// Use getters or dynamic update if these were heavily used as static values
 const GAME_DURATION = 60; // seconds
 const PLAYER_WIDTH = 55;
 const PLAYER_HEIGHT = 65;
@@ -76,9 +107,9 @@ let hsNutWilly = parseInt(localStorage.getItem('nutRush_hsWilly') || '0');
 
 // --- Parallax Forest ---
 const parallaxLayers = [
-    { y: CANVAS_HEIGHT - 120, speed: 0.02, color: '#2e7d32', height: 100 }, // Back hills (Very slow)
-    { y: CANVAS_HEIGHT - 80, speed: 0.06, color: '#388e3c', height: 80 },  // Mid trees
-    { y: CANVAS_HEIGHT - 40, speed: 0.12, color: '#43a047', height: 60 }   // Front grass
+    { y: 0, speed: 0.02, color: '#2e7d32', height: 100 }, // Back hills (Very slow)
+    { y: 0, speed: 0.06, color: '#388e3c', height: 80 },  // Mid trees
+    { y: 0, speed: 0.12, color: '#43a047', height: 60 }   // Front grass
 ];
 
 // --- Player Objects ---
@@ -89,7 +120,7 @@ function spawnPopup(x, y, text, color) {
 function createPlayer(x, name, color, controls) {
     return {
         x: x,
-        y: CANVAS_HEIGHT - PLAYER_HEIGHT - 10,
+        y: canvas.height - PLAYER_HEIGHT - 10,
         baseWidth: PLAYER_WIDTH,
         width: PLAYER_WIDTH,
         height: PLAYER_HEIGHT,
@@ -218,7 +249,7 @@ function createPlayer(x, name, color, controls) {
             this.isMoving = moved;
 
             // Keep player within bounds
-            this.x = Math.max(0, Math.min(CANVAS_WIDTH - this.width, this.x));
+            this.x = Math.max(0, Math.min(canvas.width - this.width, this.x));
 
             // Update bobbing animation if moving
             if (this.isMoving) {
@@ -293,7 +324,7 @@ function createPlayer(x, name, color, controls) {
 
         reset: function(startX) {
             this.x = startX;
-            this.y = CANVAS_HEIGHT - PLAYER_HEIGHT - 10;
+            this.y = canvas.height - PLAYER_HEIGHT - 10;
             this.score = 0;
             this.stats = { nuts: 0, golden: 0, rotten: 0, rocks: 0 };
             this.width = this.baseWidth;
@@ -310,8 +341,15 @@ function createPlayer(x, name, color, controls) {
     };
 }
 
-const player1 = createPlayer(CANVAS_WIDTH / 4 - PLAYER_WIDTH / 2, "Collets", '#D2691E', { left: 'a', right: 'd' });
-const player2 = createPlayer((CANVAS_WIDTH * 3) / 4 - PLAYER_WIDTH / 2, "Willy", '#A0522D', { left: 'arrowleft', right: 'arrowright' });
+const player1 = createPlayer(0, "Collets", '#D2691E', { left: 'a', right: 'd' });
+const player2 = createPlayer(0, "Willy", '#A0522D', { left: 'arrowleft', right: 'arrowright' });
+
+function resetPlayerPositions() {
+    player1.x = canvas.width / 4 - player1.width / 2;
+    player1.y = canvas.height - player1.height - 10;
+    player2.x = (canvas.width * 3) / 4 - player2.width / 2;
+    player2.y = canvas.height - player2.height - 10;
+}
 
 // --- Item Functions ---
 function spawnItem() {
@@ -336,7 +374,7 @@ function spawnItem() {
 
     const props = ITEM_PROPS[itemType];
     items.push({
-        x: Math.random() * (CANVAS_WIDTH - ITEM_SIZE),
+        x: Math.random() * (canvas.width - ITEM_SIZE),
         y: -ITEM_SIZE,
         size: itemType === ITEM_TYPES.ROCK ? ITEM_SIZE * 1.2 : ITEM_SIZE, // Rocks slightly bigger
         speed: 1.5 + Math.random() * 2 + timeProgress * 1.5, // Base speed + random + increase over time
@@ -356,7 +394,7 @@ function updateItems() {
         items[i].rotation += items[i].rotationSpeed;
 
         // Remove items that fall off the bottom
-        if (items[i].y > CANVAS_HEIGHT) {
+        if (items[i].y > canvas.height) {
             // Maybe play a 'miss' sound softly? Optional.
             items.splice(i, 1);
         }
@@ -579,7 +617,7 @@ function updateTimer() {
 
 function clearCanvas() {
     // Dynamic Sky Gradient
-    let skyGrad = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
+    let skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
     const progress = (GAME_DURATION - timerValue) / GAME_DURATION;
     
     if (progress > 0.75) { // Super Squirrel Tension (Sunset)
@@ -590,7 +628,7 @@ function clearCanvas() {
         skyGrad.addColorStop(1, '#e1f5fe');
     }
     ctx.fillStyle = skyGrad;
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     drawParallax();
 }
@@ -601,14 +639,14 @@ function drawParallax() {
         // Draw recurring shapes (trees/hills)
         const itemWidth = 150;
         const offset = (Date.now() * layer.speed) % itemWidth;
-        for (let x = -offset; x < CANVAS_WIDTH; x += itemWidth) {
+        for (let x = -offset; x < canvas.width; x += itemWidth) {
             ctx.beginPath();
             if (layer.height > 80) { // Hills
-                ctx.arc(x + itemWidth/2, CANVAS_HEIGHT, itemWidth/1.5, Math.PI, 0);
+                ctx.arc(x + itemWidth/2, canvas.height, itemWidth/1.5, Math.PI, 0);
             } else { // Trees
-                ctx.moveTo(x + itemWidth/2, CANVAS_HEIGHT - layer.height);
-                ctx.lineTo(x + itemWidth/4, CANVAS_HEIGHT);
-                ctx.lineTo(x + itemWidth * 0.75, CANVAS_HEIGHT);
+                ctx.moveTo(x + itemWidth/2, canvas.height - layer.height);
+                ctx.lineTo(x + itemWidth/4, canvas.height);
+                ctx.lineTo(x + itemWidth * 0.75, canvas.height);
             }
             ctx.fill();
         }
@@ -694,6 +732,7 @@ function showCountdown() {
 }
 
 function startGame() {
+    resizeCanvas(); // Ensure size is fresh
     isGameOver = false;
     isPaused = false;
     keysPressed = {};
@@ -705,8 +744,9 @@ function startGame() {
     megaNutSpawned = false;
 
     // Reset players
-    player1.reset(CANVAS_WIDTH / 4 - PLAYER_WIDTH / 2);
-    player2.reset((CANVAS_WIDTH * 3) / 4 - PLAYER_WIDTH / 2);
+    resetPlayerPositions();
+    player1.reset(player1.x);
+    player2.reset(player2.x);
 
     // Reset UI
     updateScoreUI(player1, score1Display, 0);
@@ -823,7 +863,7 @@ function gameLoop(timestamp) { // timestamp provided by requestAnimationFrame
         megaNutSpawned = true;
         const props = ITEM_PROPS[ITEM_TYPES.MEGA_NUT];
         items.push({
-            x: CANVAS_WIDTH / 2 - 40,
+            x: canvas.width / 2 - 40,
             y: -100,
             size: 80,
             speed: 5,
@@ -913,6 +953,8 @@ function setupTouchControls() {
 // --- Initial Setup ---
 // Start with the countdown when the page loads
 window.onload = () => {
+    resizeCanvas();
+    resetPlayerPositions();
     // Ensure players are drawn initially even before game starts
     clearCanvas();
     player1.draw();

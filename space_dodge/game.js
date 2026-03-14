@@ -6,6 +6,45 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+// --- Dynamic Canvas Resizing ---
+// Design resolution (all game logic uses these coordinates)
+const DESIGN_W = 800;
+const DESIGN_H = 600;
+
+function resizeCanvas() {
+    const container = document.getElementById('game-container');
+    const controls = document.getElementById('touch-controls');
+    const isMobile = window.innerWidth <= 1024;
+
+    // Available space = container minus touch controls height
+    const controlsH = isMobile ? controls.offsetHeight : 0;
+    const availW = container.clientWidth;
+    const availH = container.clientHeight - controlsH;
+
+    // Scale to fit while preserving 4:3
+    const scaleX = availW / DESIGN_W;
+    const scaleY = availH / DESIGN_H;
+    const scale = Math.min(scaleX, scaleY);
+
+    canvas.width = Math.floor(DESIGN_W * scale);
+    canvas.height = Math.floor(DESIGN_H * scale);
+
+    // CSS size matches pixel size (1:1 crisp rendering)
+    canvas.style.width = canvas.width + 'px';
+    canvas.style.height = canvas.height + 'px';
+
+    // Re-scatter background stars to new dimensions
+    for (let i = 0; i < stars.length; i++) {
+        stars[i].x = Math.random() * canvas.width;
+        stars[i].y = Math.random() * canvas.height;
+    }
+}
+
+window.addEventListener('resize', resizeCanvas);
+window.addEventListener('orientationchange', () => {
+    setTimeout(resizeCanvas, 150); // Delay for iOS orientation settle
+});
+
 // UI Elements
 const startScreen = document.getElementById('start-screen');
 const gameOverScreen = document.getElementById('game-over-screen');
@@ -137,20 +176,27 @@ function stopBGM() {
     bgMusic.pause();
 }
 
-// Entities
+// Entities — positions are set proportionally in resetPlayerPositions()
 const players = {
-    colletas: { x: 250, y: 450, width: 50, height: 80, speed: 6, color: '#ff3399', hatColor: '#ffff00', headColor: '#e67300', isLeft: false, isRight: false },
-    willy: { x: 500, y: 450, width: 50, height: 80, speed: 6, color: '#00ccff', hatColor: '#0055ff', headColor: '#8b4513', isLeft: false, isRight: false }
+    colletas: { x: 0, y: 0, width: 50, height: 80, speed: 6, color: '#ff3399', hatColor: '#ffff00', headColor: '#e67300', isLeft: false, isRight: false },
+    willy: { x: 0, y: 0, width: 50, height: 80, speed: 6, color: '#00ccff', hatColor: '#0055ff', headColor: '#8b4513', isLeft: false, isRight: false }
 };
+
+function resetPlayerPositions() {
+    players.colletas.x = canvas.width * 0.3125;  // 250/800
+    players.colletas.y = canvas.height * 0.75;    // 450/600
+    players.willy.x = canvas.width * 0.625;       // 500/800
+    players.willy.y = canvas.height * 0.75;
+}
 
 let obstacles = [];
 let stars = [];
 
-// Initialize Background Stars
+// Initialize Background Stars (positions updated by resizeCanvas)
 for(let i=0; i<100; i++) {
     stars.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
+        x: Math.random() * DESIGN_W,
+        y: Math.random() * DESIGN_H,
         size: Math.random() * 2 + 1,
         speed: Math.random() * 1 + 0.5,
         twinkle: Math.random() > 0.8,
@@ -159,8 +205,13 @@ for(let i=0; i<100; i++) {
     });
 }
 
-const moon = { y: 550 }; // Starts visible, scrolls down
-const earth = { y: -200, size: 80 }; // Appears at the very end
+const moon = { y: 0 }; // Set proportionally in startGame
+const earth = { y: -200, size: 80 };
+
+// Initial sizing
+resizeCanvas();
+resetPlayerPositions();
+moon.y = canvas.height * 0.917; // 550/600
 
 // Input Handling
 document.addEventListener('keydown', (e) => {
@@ -213,6 +264,9 @@ function togglePause() {
 }
 
 function startGame() {
+    // Re-measure in case the device was rotated on the start screen
+    resizeCanvas();
+
     // Reset State
     timeLeft = 60;
     scoreP1 = 50;
@@ -220,7 +274,7 @@ function startGame() {
     speed = 2.0; // Starts very slow for kids
     obstacles = [];
     popups = [];
-    moon.y = 550;
+    moon.y = canvas.height * 0.917; // 550/600
     earth.y = -200;
     invulnP1 = 0;
     invulnP2 = 0;
@@ -234,8 +288,7 @@ function startGame() {
     statsP2 = { stars: 0, ufos: 0, shields: 0, hits: 0 };
     lastTimeUpdate = Date.now();
     
-    players.colletas.x = 250;
-    players.willy.x = 500;
+    resetPlayerPositions();
     
     startScreen.classList.add('hidden');
     gameOverScreen.classList.add('hidden');
