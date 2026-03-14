@@ -307,11 +307,25 @@ function drawWilly(x, y, w, h) {
 
 function drawMeteorite(obs) {
     if (obs.type === 'star') {
-        // Draw Yellow Star
+        // Draw 5-pointed Star
         ctx.fillStyle = '#ffff00';
+        ctx.strokeStyle = '#ffcc00';
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(obs.x, obs.y, obs.radius, 0, Math.PI*2); // lazy star is circle for now, drawn as polygon
+        const spikes = 5;
+        const outerR = obs.radius;
+        const innerR = obs.radius * 0.45;
+        for (let i = 0; i < spikes * 2; i++) {
+            const r = i % 2 === 0 ? outerR : innerR;
+            const angle = (Math.PI * i / spikes) - Math.PI / 2;
+            const px = obs.x + Math.cos(angle) * r;
+            const py = obs.y + Math.sin(angle) * r;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
         ctx.fill();
+        ctx.stroke();
         return;
     }
     if (obs.type === 'ufo') {
