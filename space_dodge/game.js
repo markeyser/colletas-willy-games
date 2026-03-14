@@ -35,6 +35,8 @@ let shieldP2 = 0;
 let popups = []; // Floating score text
 let hsColletas = parseInt(localStorage.getItem('spaceDodge_hsColletas') || '0');
 let hsWilly = parseInt(localStorage.getItem('spaceDodge_hsWilly') || '0');
+let shakeTimer = 0;
+let planets = []; // Background planet fly-bys
 
 // Audio System (MP3 for BGM, Web Audio API for SFX)
 const bgMusic = new Audio('music.mp3');
@@ -201,6 +203,8 @@ function startGame() {
     invulnP2 = 0;
     shieldP1 = 0;
     shieldP2 = 0;
+    shakeTimer = 0;
+    planets = [];
     lastTimeUpdate = Date.now();
     
     players.colletas.x = 250;
@@ -237,11 +241,18 @@ function spawnObstacle() {
         else if (rng > 0.87) obsType = 'ufo'; // ~7% chance
         else if (rng > 0.62) obsType = 'star'; // ~25% chance
         
+        // Add horizontal drift for meteorites in the last 20 seconds
+        let vx = 0;
+        if (obsType === 'meteorite' && timeLeft < 20) {
+            vx = (Math.random() - 0.5) * (3 + (20 - timeLeft) * 0.3);
+        }
+        
         obstacles.push({
             x: Math.random() * (canvas.width - size),
             y: -50,
             radius: size,
-            type: obsType
+            type: obsType,
+            vx: vx
         });
     }
 }
@@ -256,13 +267,23 @@ function drawColletas(x, y, w, h) {
     ctx.lineTo(x, y + h); // left tail
     ctx.fill();
     
-    // Flame
+    // Flame — scales with speed
+    const flameLen = 20 + (speed * 3) + Math.random() * 10;
     ctx.fillStyle = '#ff9900';
     ctx.beginPath();
     ctx.moveTo(x + w/4, y + h);
-    ctx.lineTo(x + w/2, y + h + 20 + Math.random()*10); // flickers
+    ctx.lineTo(x + w/2, y + h + flameLen);
     ctx.lineTo(x + w*3/4, y + h);
     ctx.fill();
+    // Inner flame
+    if (speed > 4) {
+        ctx.fillStyle = '#ffff66';
+        ctx.beginPath();
+        ctx.moveTo(x + w/3, y + h);
+        ctx.lineTo(x + w/2, y + h + flameLen * 0.6);
+        ctx.lineTo(x + w*2/3, y + h);
+        ctx.fill();
+    }
 
     // Colletas Head (Orange Square)
     ctx.fillStyle = players.colletas.headColor;
@@ -296,13 +317,23 @@ function drawWilly(x, y, w, h) {
     ctx.lineTo(x, y + h); // left tail
     ctx.fill();
     
-    // Flame
+    // Flame — scales with speed
+    const flameLen = 20 + (speed * 3) + Math.random() * 10;
     ctx.fillStyle = '#ff6600';
     ctx.beginPath();
     ctx.moveTo(x + w/4, y + h);
-    ctx.lineTo(x + w/2, y + h + 20 + Math.random()*10); // flickers
+    ctx.lineTo(x + w/2, y + h + flameLen);
     ctx.lineTo(x + w*3/4, y + h);
     ctx.fill();
+    // Inner flame
+    if (speed > 4) {
+        ctx.fillStyle = '#ffff66';
+        ctx.beginPath();
+        ctx.moveTo(x + w/3, y + h);
+        ctx.lineTo(x + w/2, y + h + flameLen * 0.6);
+        ctx.lineTo(x + w*2/3, y + h);
+        ctx.fill();
+    }
 
     // Willy Head (Brown Square)
     ctx.fillStyle = players.willy.headColor;
@@ -464,6 +495,68 @@ function drawEarth() {
     ctx.fillText("NYC!", canvas.width/2 - 15, earth.y - earth.size - 10);
 }
 
+// Planet Fly-By Drawing
+function drawPlanet(planet) {
+    ctx.globalAlpha = planet.alpha;
+    
+    if (planet.name === 'Mars') {
+        ctx.fillStyle = '#cc4422';
+        ctx.beginPath();
+        ctx.arc(planet.x, planet.y, planet.size, 0, Math.PI*2);
+        ctx.fill();
+        ctx.fillStyle = '#993311';
+        ctx.beginPath();
+        ctx.arc(planet.x - planet.size/3, planet.y + planet.size/4, planet.size/4, 0, Math.PI*2);
+        ctx.fill();
+    } else if (planet.name === 'Saturn') {
+        ctx.fillStyle = '#ddaa44';
+        ctx.beginPath();
+        ctx.arc(planet.x, planet.y, planet.size, 0, Math.PI*2);
+        ctx.fill();
+        // Ring
+        ctx.strokeStyle = '#ccbb88';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.ellipse(planet.x, planet.y, planet.size * 1.6, planet.size * 0.3, -0.3, 0, Math.PI*2);
+        ctx.stroke();
+    } else if (planet.name === 'Jupiter') {
+        ctx.fillStyle = '#cc9966';
+        ctx.beginPath();
+        ctx.arc(planet.x, planet.y, planet.size, 0, Math.PI*2);
+        ctx.fill();
+        // Bands
+        ctx.strokeStyle = '#aa7744';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(planet.x - planet.size, planet.y - planet.size/3);
+        ctx.lineTo(planet.x + planet.size, planet.y - planet.size/3);
+        ctx.moveTo(planet.x - planet.size, planet.y + planet.size/4);
+        ctx.lineTo(planet.x + planet.size, planet.y + planet.size/4);
+        ctx.stroke();
+    }
+    
+    // Label
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.font = '14px "Fredoka One"';
+    ctx.textAlign = 'center';
+    ctx.fillText(planet.name, planet.x, planet.y - planet.size - 8);
+    
+    ctx.globalAlpha = 1.0;
+}
+
+function spawnPlanets() {
+    // Check if we should spawn a planet fly-by
+    if (timeLeft <= 40 && timeLeft > 39.9 && !planets.find(p => p.name === 'Mars')) {
+        planets.push({ name: 'Mars', x: 120, y: -80, size: 40, alpha: 0, targetAlpha: 0.4 });
+    }
+    if (timeLeft <= 20 && timeLeft > 19.9 && !planets.find(p => p.name === 'Saturn')) {
+        planets.push({ name: 'Saturn', x: canvas.width - 150, y: -80, size: 35, alpha: 0, targetAlpha: 0.4 });
+    }
+    if (timeLeft <= 10 && timeLeft > 9.9 && !planets.find(p => p.name === 'Jupiter')) {
+        planets.push({ name: 'Jupiter', x: 200, y: -80, size: 50, alpha: 0, targetAlpha: 0.35 });
+    }
+}
+
 function update() {
     let now = Date.now();
     let dt = (now - lastTimeUpdate) / 1000;
@@ -509,12 +602,20 @@ function update() {
     if (invulnP2 > 0) invulnP2 -= dt;
     if (shieldP1 > 0) shieldP1 -= dt;
     if (shieldP2 > 0) shieldP2 -= dt;
+    if (shakeTimer > 0) shakeTimer -= dt;
     
     // Update popups
     for (let i = popups.length - 1; i >= 0; i--) {
         popups[i].y -= 1.5;
         popups[i].life -= dt;
         if (popups[i].life <= 0) popups.splice(i, 1);
+    }
+    
+    // Update planet fly-bys
+    spawnPlanets();
+    for (let i = 0; i < planets.length; i++) {
+        planets[i].y += speed * 0.15;
+        if (planets[i].alpha < planets[i].targetAlpha) planets[i].alpha += dt * 0.3;
     }
 
     // Obstacles Update
@@ -524,6 +625,12 @@ function update() {
 
     for (let i = 0; i < obstacles.length; i++) {
         obstacles[i].y += speed;
+        // Horizontal drift (zigzag meteorites)
+        if (obstacles[i].vx) {
+            obstacles[i].x += obstacles[i].vx;
+            // Bounce off edges
+            if (obstacles[i].x < 0 || obstacles[i].x > canvas.width) obstacles[i].vx *= -1;
+        }
 
         // Collision Check (Simple Circle to Rect)
         let cx = obstacles[i].x;
@@ -563,9 +670,9 @@ function update() {
         }
     }
     
-    // Stars Parallax
+    // Stars Parallax — speed-based streak effect
     for(let i=0; i<stars.length; i++){
-        stars[i].y += stars[i].speed;
+        stars[i].y += stars[i].speed + (speed > 5 ? (speed - 5) * 0.5 : 0);
         if(stars[i].y > canvas.height) stars[i].y = 0;
     }
 }
@@ -593,19 +700,33 @@ function handleCollision(playerNum, obs) {
         spawnPopup(px, py, '+10', '#33ff66');
     } else { // meteorite
         playSound('crash');
-        if (playerNum === 1) { scoreP1 = Math.max(0, scoreP1 - 5); invulnP1 = 2.0; }
-        if (playerNum === 2) { scoreP2 = Math.max(0, scoreP2 - 5); invulnP2 = 2.0; }
+        if (playerNum === 1) { scoreP1 = Math.max(0, scoreP1 - 5); invulnP1 = 2.0; shakeTimer = 0.15; }
+        if (playerNum === 2) { scoreP2 = Math.max(0, scoreP2 - 5); invulnP2 = 2.0; shakeTimer = 0.15; }
         spawnPopup(px, py, '-5', '#ff4466');
     }
 }
 
 function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Screen Shake
+    ctx.save();
+    if (shakeTimer > 0) {
+        const shakeX = (Math.random() - 0.5) * 12;
+        const shakeY = (Math.random() - 0.5) * 12;
+        ctx.translate(shakeX, shakeY);
+    }
+    
+    ctx.clearRect(-20, -20, canvas.width + 40, canvas.height + 40);
 
-    // Draw Stars
+    // Draw Stars (with speed streaks)
     ctx.fillStyle = '#ffffff';
     for(let i=0; i<stars.length; i++){
-        ctx.fillRect(stars[i].x, stars[i].y, stars[i].size, stars[i].size);
+        const streakLen = speed > 5 ? (speed - 5) * 1.5 : 0;
+        ctx.fillRect(stars[i].x, stars[i].y, stars[i].size, stars[i].size + streakLen);
+    }
+    
+    // Draw planet fly-bys (behind everything)
+    for (let i = 0; i < planets.length; i++) {
+        drawPlanet(planets[i]);
     }
 
     drawEarth();
@@ -671,6 +792,8 @@ function draw() {
         ctx.textAlign = 'center';
         ctx.fillText('PAUSED', canvas.width/2, canvas.height/2);
     }
+    
+    ctx.restore(); // End screen shake transform
 }
 
 function triggerGameOver() {
