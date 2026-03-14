@@ -33,7 +33,8 @@ let invulnP2 = 0;
 let shieldP1 = 0;
 let shieldP2 = 0;
 let popups = []; // Floating score text
-let highScore = parseInt(localStorage.getItem('spaceDodgeHighScore') || '0');
+let hsColletas = parseInt(localStorage.getItem('spaceDodge_hsColletas') || '0');
+let hsWilly = parseInt(localStorage.getItem('spaceDodge_hsWilly') || '0');
 
 // Audio System (MP3 for BGM, Web Audio API for SFX)
 const bgMusic = new Audio('music.mp3');
@@ -189,8 +190,8 @@ function togglePause() {
 function startGame() {
     // Reset State
     timeLeft = 60;
-    scoreP1 = 0;
-    scoreP2 = 0;
+    scoreP1 = 50;
+    scoreP2 = 50;
     speed = 2.0; // Starts very slow for kids
     obstacles = [];
     popups = [];
@@ -232,9 +233,9 @@ function spawnObstacle() {
         const size = Math.random() * 30 + 20;
         let rng = Math.random();
         let obsType = 'meteorite';
-        if (rng > 0.97) obsType = 'shield';
-        else if (rng > 0.9) obsType = 'ufo';
-        else if (rng > 0.8) obsType = 'star';
+        if (rng > 0.94) obsType = 'shield';   // ~6% chance
+        else if (rng > 0.87) obsType = 'ufo'; // ~7% chance
+        else if (rng > 0.62) obsType = 'star'; // ~25% chance
         
         obstacles.push({
             x: Math.random() * (canvas.width - size),
@@ -686,21 +687,33 @@ function triggerVictory() {
     playSound('win');
     
     let winnerText = "It's a Tie!";
-    if (scoreP1 > scoreP2) winnerText = "Colletas Wins!";
-    else if (scoreP2 > scoreP1) winnerText = "Willy Wins!";
+    if (scoreP1 > scoreP2) winnerText = "Colletas Wins! 🎉";
+    else if (scoreP2 > scoreP1) winnerText = "Willy Wins! 🎉";
     
-    // High Score tracking
-    const totalScore = scoreP1 + scoreP2;
-    let highScoreText = '';
-    if (totalScore > highScore) {
-        highScore = totalScore;
-        localStorage.setItem('spaceDodgeHighScore', highScore.toString());
-        highScoreText = `<br>🎉 NEW HIGH SCORE: ${highScore}!`;
-    } else {
-        highScoreText = `<br>🏆 Best: ${highScore}`;
+    // Per-player high score tracking
+    let hsText = '';
+    let newRecordP1 = false;
+    let newRecordP2 = false;
+    
+    if (scoreP1 > hsColletas) {
+        hsColletas = scoreP1;
+        localStorage.setItem('spaceDodge_hsColletas', hsColletas.toString());
+        newRecordP1 = true;
+    }
+    if (scoreP2 > hsWilly) {
+        hsWilly = scoreP2;
+        localStorage.setItem('spaceDodge_hsWilly', hsWilly.toString());
+        newRecordP2 = true;
     }
     
-    winScoreEl.innerHTML = `Landed safely in NYC!<br><br>${winnerText}<br>Colletas: ${scoreP1} | Willy: ${scoreP2}${highScoreText}`;
+    hsText = '<br>';
+    if (newRecordP1) hsText += `🎉 Colletas NEW RECORD: ${hsColletas}!`;
+    else hsText += `🏆 Colletas Best: ${hsColletas}`;
+    hsText += '<br>';
+    if (newRecordP2) hsText += `🎉 Willy NEW RECORD: ${hsWilly}!`;
+    else hsText += `🏆 Willy Best: ${hsWilly}`;
+    
+    winScoreEl.innerHTML = `Landed safely in NYC!<br><br>${winnerText}<br>Colletas: ${scoreP1} | Willy: ${scoreP2}${hsText}`;
     victoryScreen.classList.remove('hidden');
 }
 
