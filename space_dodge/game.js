@@ -37,6 +37,11 @@ let hsColletas = parseInt(localStorage.getItem('spaceDodge_hsColletas') || '0');
 let hsWilly = parseInt(localStorage.getItem('spaceDodge_hsWilly') || '0');
 let shakeTimer = 0;
 let planets = []; // Background planet fly-bys
+let bossSpawned = false;
+
+// Per-player stats for end-of-game awards
+let statsP1 = { stars: 0, ufos: 0, shields: 0, hits: 0 };
+let statsP2 = { stars: 0, ufos: 0, shields: 0, hits: 0 };
 
 // Audio System (MP3 for BGM, Web Audio API for SFX)
 const bgMusic = new Audio('music.mp3');
@@ -205,6 +210,9 @@ function startGame() {
     shieldP2 = 0;
     shakeTimer = 0;
     planets = [];
+    bossSpawned = false;
+    statsP1 = { stars: 0, ufos: 0, shields: 0, hits: 0 };
+    statsP2 = { stars: 0, ufos: 0, shields: 0, hits: 0 };
     lastTimeUpdate = Date.now();
     
     players.colletas.x = 250;
@@ -421,6 +429,41 @@ function drawObstacle(obs) {
         ctx.textBaseline = 'alphabetic';
         return;
     }
+    if (obs.type === 'boss') {
+        // Giant Boss Meteorite with red pulsing glow
+        const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 150);
+        ctx.shadowColor = '#ff0000';
+        ctx.shadowBlur = 20 + pulse * 15;
+        
+        ctx.fillStyle = '#444444';
+        ctx.beginPath();
+        ctx.arc(obs.x, obs.y, obs.radius, 0, Math.PI*2);
+        ctx.fill();
+        ctx.strokeStyle = '#cc0000';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        
+        ctx.shadowBlur = 0;
+        
+        // Big craters
+        ctx.fillStyle = '#333333';
+        ctx.beginPath();
+        ctx.arc(obs.x - obs.radius/3, obs.y - obs.radius/3, obs.radius/3, 0, Math.PI*2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(obs.x + obs.radius/4, obs.y + obs.radius/4, obs.radius/4, 0, Math.PI*2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(obs.x + obs.radius/3, obs.y - obs.radius/5, obs.radius/5, 0, Math.PI*2);
+        ctx.fill();
+        
+        // Danger label
+        ctx.fillStyle = `rgba(255, 0, 0, ${0.7 + pulse * 0.3})`;
+        ctx.font = '16px "Fredoka One"';
+        ctx.textAlign = 'center';
+        ctx.fillText('⚠️ DANGER', obs.x, obs.y - obs.radius - 10);
+        return;
+    }
 
     // Grey Meteorite
     ctx.fillStyle = '#666666';
@@ -621,10 +664,22 @@ function update() {
     // Obstacles Update
     if (timeLeft > 0) {
         spawnObstacle();
+        // Boss meteorite at 10 seconds
+        if (timeLeft <= 10 && !bossSpawned) {
+            bossSpawned = true;
+            obstacles.push({
+                x: canvas.width / 2,
+                y: -120,
+                radius: 80,
+                type: 'boss',
+                vx: 1.5
+            });
+        }
     }
 
     for (let i = 0; i < obstacles.length; i++) {
-        obstacles[i].y += speed;
+        // Boss moves much slower
+        obstacles[i].y += obstacles[i].type === 'boss' ? speed * 0.3 : speed;
         // Horizontal drift (zigzag meteorites)
         if (obstacles[i].vx) {
             obstacles[i].x += obstacles[i].vx;
@@ -685,23 +740,29 @@ function handleCollision(playerNum, obs) {
 
     if (obs.type === 'shield') {
         playSound('shield');
-        if (playerNum === 1) shieldP1 = 3.0;
-        if (playerNum === 2) shieldP2 = 3.0;
+        if (playerNum === 1) { shieldP1 = 3.0; statsP1.shields++; }
+        if (playerNum === 2) { shieldP2 = 3.0; statsP2.shields++; }
         spawnPopup(px, py, '🛡️', '#00ccff');
     } else if (obs.type === 'ufo') {
         playSound('collect');
-        if (playerNum === 1) scoreP1 += 20;
-        if (playerNum === 2) scoreP2 += 20;
+        if (playerNum === 1) { scoreP1 += 20; statsP1.ufos++; }
+        if (playerNum === 2) { scoreP2 += 20; statsP2.ufos++; }
         spawnPopup(px, py, '+20', '#ffd700');
     } else if (obs.type === 'star') {
         playSound('collect');
-        if (playerNum === 1) scoreP1 += 10;
-        if (playerNum === 2) scoreP2 += 10;
+        if (playerNum === 1) { scoreP1 += 10; statsP1.stars++; }
+        if (playerNum === 2) { scoreP2 += 10; statsP2.stars++; }
         spawnPopup(px, py, '+10', '#33ff66');
+    } else if (obs.type === 'boss') {
+        // Boss meteor hit — big penalty!
+        playSound('crash');
+        if (playerNum === 1) { scoreP1 = Math.max(0, scoreP1 - 15); invulnP1 = 2.5; shakeTimer = 0.3; statsP1.hits++; }
+        if (playerNum === 2) { scoreP2 = Math.max(0, scoreP2 - 15); invulnP2 = 2.5; shakeTimer = 0.3; statsP2.hits++; }
+        spawnPopup(px, py, '-15!', '#ff0000');
     } else { // meteorite
         playSound('crash');
-        if (playerNum === 1) { scoreP1 = Math.max(0, scoreP1 - 5); invulnP1 = 2.0; shakeTimer = 0.15; }
-        if (playerNum === 2) { scoreP2 = Math.max(0, scoreP2 - 5); invulnP2 = 2.0; shakeTimer = 0.15; }
+        if (playerNum === 1) { scoreP1 = Math.max(0, scoreP1 - 5); invulnP1 = 2.0; shakeTimer = 0.15; statsP1.hits++; }
+        if (playerNum === 2) { scoreP2 = Math.max(0, scoreP2 - 5); invulnP2 = 2.0; shakeTimer = 0.15; statsP2.hits++; }
         spawnPopup(px, py, '-5', '#ff4466');
     }
 }
@@ -836,7 +897,30 @@ function triggerVictory() {
     if (newRecordP2) hsText += `🎉 Willy NEW RECORD: ${hsWilly}!`;
     else hsText += `🏆 Willy Best: ${hsWilly}`;
     
-    winScoreEl.innerHTML = `Landed safely in NYC!<br><br>${winnerText}<br>Colletas: ${scoreP1} | Willy: ${scoreP2}${hsText}`;
+    // Fun Awards!
+    let awards = '<br><br>';
+    // Star Collector
+    if (statsP1.stars > statsP2.stars) awards += '⭐ Star Collector: Colletas<br>';
+    else if (statsP2.stars > statsP1.stars) awards += '⭐ Star Collector: Willy<br>';
+    else if (statsP1.stars > 0) awards += '⭐ Star Collectors: Both!<br>';
+    // UFO Hunter
+    if (statsP1.ufos > statsP2.ufos) awards += '🛸 UFO Hunter: Colletas<br>';
+    else if (statsP2.ufos > statsP1.ufos) awards += '🛸 UFO Hunter: Willy<br>';
+    else if (statsP1.ufos > 0) awards += '🛸 UFO Hunters: Both!<br>';
+    // Meteorite Magnet
+    if (statsP1.hits > statsP2.hits) awards += '🪨 Meteorite Magnet: Colletas<br>';
+    else if (statsP2.hits > statsP1.hits) awards += '🪨 Meteorite Magnet: Willy<br>';
+    else if (statsP1.hits > 0) awards += '🪨 Meteorite Magnets: Both!<br>';
+    // Shield Master
+    if (statsP1.shields > statsP2.shields) awards += '🛡️ Shield Master: Colletas<br>';
+    else if (statsP2.shields > statsP1.shields) awards += '🛡️ Shield Master: Willy<br>';
+    else if (statsP1.shields > 0) awards += '🛡️ Shield Masters: Both!<br>';
+    // Dodge Master (fewest hits)
+    if (statsP1.hits < statsP2.hits) awards += '💨 Dodge Master: Colletas';
+    else if (statsP2.hits < statsP1.hits) awards += '💨 Dodge Master: Willy';
+    else awards += '💨 Dodge Masters: Both!';
+    
+    winScoreEl.innerHTML = `Landed safely in NYC!<br><br>${winnerText}<br>Colletas: ${scoreP1} | Willy: ${scoreP2}${hsText}${awards}`;
     victoryScreen.classList.remove('hidden');
 }
 
