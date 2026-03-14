@@ -30,6 +30,10 @@ let animationId;
 let lastTimeUpdate = 0;
 let invulnP1 = 0;
 let invulnP2 = 0;
+let shieldP1 = 0;
+let shieldP2 = 0;
+let popups = []; // Floating score text
+let highScore = parseInt(localStorage.getItem('spaceDodgeHighScore') || '0');
 
 // Audio System (MP3 for BGM, Web Audio API for SFX)
 const bgMusic = new Audio('music.mp3');
@@ -57,7 +61,6 @@ function playSound(type) {
     const now = audioCtx.currentTime;
 
     if (type === 'start') {
-        // Thruster take off sound
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(50, now);
         osc.frequency.exponentialRampToValueAtTime(800, now + 1.5);
@@ -65,8 +68,27 @@ function playSound(type) {
         gainNode.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
         osc.start(now);
         osc.stop(now + 1.5);
+    } else if (type === 'collect') {
+        // Short coin-like ding for collectibles
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, now);
+        osc.frequency.setValueAtTime(1320, now + 0.08);
+        gainNode.gain.setValueAtTime(0.25, now);
+        gainNode.gain.linearRampToValueAtTime(0, now + 0.25);
+        osc.start(now);
+        osc.stop(now + 0.25);
+    } else if (type === 'shield') {
+        // Power-up chime
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523, now);
+        osc.frequency.setValueAtTime(659, now + 0.1);
+        osc.frequency.setValueAtTime(784, now + 0.2);
+        osc.frequency.setValueAtTime(1047, now + 0.3);
+        gainNode.gain.setValueAtTime(0.3, now);
+        gainNode.gain.linearRampToValueAtTime(0, now + 0.5);
+        osc.start(now);
+        osc.stop(now + 0.5);
     } else if (type === 'win') {
-        // Happy arpeggio
         osc.type = 'sine';
         const freqs = [440, 554.37, 659.25, 880];
         freqs.forEach((freq, i) => {
@@ -77,6 +99,10 @@ function playSound(type) {
         osc.start(now);
         osc.stop(now + 0.8);
     }
+}
+
+function spawnPopup(x, y, text, color) {
+    popups.push({ x, y, text, color, life: 1.0 });
 }
 
 function startBGM() {
@@ -167,10 +193,13 @@ function startGame() {
     scoreP2 = 0;
     speed = 2.0; // Starts very slow for kids
     obstacles = [];
+    popups = [];
     moon.y = 550;
     earth.y = -200;
     invulnP1 = 0;
     invulnP2 = 0;
+    shieldP1 = 0;
+    shieldP2 = 0;
     lastTimeUpdate = Date.now();
     
     players.colletas.x = 250;
@@ -203,7 +232,8 @@ function spawnObstacle() {
         const size = Math.random() * 30 + 20;
         let rng = Math.random();
         let obsType = 'meteorite';
-        if (rng > 0.9) obsType = 'ufo';
+        if (rng > 0.97) obsType = 'shield';
+        else if (rng > 0.9) obsType = 'ufo';
         else if (rng > 0.8) obsType = 'star';
         
         obstacles.push({
@@ -306,7 +336,7 @@ function drawWilly(x, y, w, h) {
     ctx.fill();
 }
 
-function drawMeteorite(obs) {
+function drawObstacle(obs) {
     if (obs.type === 'star') {
         // Draw 5-pointed Star
         ctx.fillStyle = '#ffff00';
@@ -339,6 +369,24 @@ function drawMeteorite(obs) {
         ctx.beginPath();
         ctx.ellipse(obs.x, obs.y + obs.radius/4, obs.radius, obs.radius/4, 0, 0, Math.PI*2);
         ctx.fill();
+        return;
+    }
+    if (obs.type === 'shield') {
+        // Draw Shield Power-Up (blue bubble)
+        ctx.strokeStyle = '#00ccff';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(obs.x, obs.y, obs.radius, 0, Math.PI*2);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(0, 204, 255, 0.2)';
+        ctx.fill();
+        // Shield icon text
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `${obs.radius}px "Fredoka One"`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🛡️', obs.x, obs.y);
+        ctx.textBaseline = 'alphabetic';
         return;
     }
 
@@ -455,9 +503,18 @@ function update() {
     if (players.willy.isLeft && players.willy.x > 0) players.willy.x -= players.willy.speed;
     if (players.willy.isRight && players.willy.x < canvas.width - players.willy.width) players.willy.x += players.willy.speed;
 
-    // Decrease invulnerability frames
+    // Decrease invulnerability and shield timers
     if (invulnP1 > 0) invulnP1 -= dt;
     if (invulnP2 > 0) invulnP2 -= dt;
+    if (shieldP1 > 0) shieldP1 -= dt;
+    if (shieldP2 > 0) shieldP2 -= dt;
+    
+    // Update popups
+    for (let i = popups.length - 1; i >= 0; i--) {
+        popups[i].y -= 1.5;
+        popups[i].life -= dt;
+        if (popups[i].life <= 0) popups.splice(i, 1);
+    }
 
     // Obstacles Update
     if (timeLeft > 0) {
@@ -474,14 +531,25 @@ function update() {
         
         let hitProcessed = false;
         
-        // P1 Hit
-        if (invulnP1 <= 0 && cx > players.colletas.x - r && cx < players.colletas.x + players.colletas.width + r &&
+        // P1 Hit — skip if invuln from meteorite AND this is a meteorite (shield still allows collectibles)
+        let p1CanHit = (obstacles[i].type !== 'meteorite' || invulnP1 <= 0) && (obstacles[i].type !== 'meteorite' || shieldP1 <= 0);
+        if (obstacles[i].type !== 'meteorite') p1CanHit = shieldP1 > 0 || invulnP1 <= 0; // collectibles: always if shield, skip if blinking
+        // Simplify: blinking blocks ALL. Shield blocks meteorites only.
+        if (invulnP1 > 0) p1CanHit = false; // blink = ghost
+        else if (obstacles[i].type === 'meteorite' && shieldP1 > 0) p1CanHit = false; // shield blocks rocks only
+        else p1CanHit = true;
+        
+        if (p1CanHit && cx > players.colletas.x - r && cx < players.colletas.x + players.colletas.width + r &&
             cy > players.colletas.y - r && cy < players.colletas.y + players.colletas.height + r) {
             handleCollision(1, obstacles[i]);
             hitProcessed = true;
         }
-        // P2 Hit (if not already hit by P1)
-        if (!hitProcessed && invulnP2 <= 0 && cx > players.willy.x - r && cx < players.willy.x + players.willy.width + r &&
+        
+        let p2CanHit = true;
+        if (invulnP2 > 0) p2CanHit = false;
+        else if (obstacles[i].type === 'meteorite' && shieldP2 > 0) p2CanHit = false;
+        
+        if (!hitProcessed && p2CanHit && cx > players.willy.x - r && cx < players.willy.x + players.willy.width + r &&
             cy > players.willy.y - r && cy < players.willy.y + players.willy.height + r) {
             handleCollision(2, obstacles[i]);
             hitProcessed = true;
@@ -503,19 +571,30 @@ function update() {
 
 function handleCollision(playerNum, obs) {
     if (gameState !== 'PLAYING') return;
+    
+    const px = playerNum === 1 ? players.colletas.x + 25 : players.willy.x + 25;
+    const py = playerNum === 1 ? players.colletas.y - 30 : players.willy.y - 30;
 
-    if (obs.type === 'ufo') {
-        playSound('win'); // Collect sound
+    if (obs.type === 'shield') {
+        playSound('shield');
+        if (playerNum === 1) shieldP1 = 3.0;
+        if (playerNum === 2) shieldP2 = 3.0;
+        spawnPopup(px, py, '🛡️', '#00ccff');
+    } else if (obs.type === 'ufo') {
+        playSound('collect');
         if (playerNum === 1) scoreP1 += 20;
         if (playerNum === 2) scoreP2 += 20;
+        spawnPopup(px, py, '+20', '#ffd700');
     } else if (obs.type === 'star') {
-        playSound('win'); // Collect sound
+        playSound('collect');
         if (playerNum === 1) scoreP1 += 10;
         if (playerNum === 2) scoreP2 += 10;
+        spawnPopup(px, py, '+10', '#33ff66');
     } else { // meteorite
         playSound('crash');
         if (playerNum === 1) { scoreP1 = Math.max(0, scoreP1 - 5); invulnP1 = 2.0; }
         if (playerNum === 2) { scoreP2 = Math.max(0, scoreP2 - 5); invulnP2 = 2.0; }
+        spawnPopup(px, py, '-5', '#ff4466');
     }
 }
 
@@ -538,10 +617,37 @@ function draw() {
     if (invulnP2 <= 0 || Math.floor(Date.now() / 150) % 2 === 0) {
         drawWilly(players.willy.x, players.willy.y, players.willy.width, players.willy.height);
     }
+    
+    // Shield glow around players
+    if (shieldP1 > 0) {
+        ctx.strokeStyle = `rgba(0, 204, 255, ${0.5 + 0.5 * Math.sin(Date.now() / 100)})`;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(players.colletas.x + 25, players.colletas.y + 20, 50, 0, Math.PI*2);
+        ctx.stroke();
+    }
+    if (shieldP2 > 0) {
+        ctx.strokeStyle = `rgba(0, 204, 255, ${0.5 + 0.5 * Math.sin(Date.now() / 100)})`;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(players.willy.x + 25, players.willy.y + 20, 50, 0, Math.PI*2);
+        ctx.stroke();
+    }
 
     for (let i = 0; i < obstacles.length; i++) {
-        drawMeteorite(obstacles[i]);
+        drawObstacle(obstacles[i]);
     }
+    
+    // Draw floating score popups
+    for (let i = 0; i < popups.length; i++) {
+        const p = popups[i];
+        ctx.globalAlpha = Math.max(0, p.life);
+        ctx.fillStyle = p.color;
+        ctx.font = '20px "Fredoka One"';
+        ctx.textAlign = 'center';
+        ctx.fillText(p.text, p.x, p.y);
+    }
+    ctx.globalAlpha = 1.0;
     
     // Draw UI overlay text
     ctx.fillStyle = '#ffffff';
@@ -583,7 +689,18 @@ function triggerVictory() {
     if (scoreP1 > scoreP2) winnerText = "Colletas Wins!";
     else if (scoreP2 > scoreP1) winnerText = "Willy Wins!";
     
-    winScoreEl.innerHTML = `Landed safely in NYC!<br><br>${winnerText}<br>Colletas: ${scoreP1} | Willy: ${scoreP2}`;
+    // High Score tracking
+    const totalScore = scoreP1 + scoreP2;
+    let highScoreText = '';
+    if (totalScore > highScore) {
+        highScore = totalScore;
+        localStorage.setItem('spaceDodgeHighScore', highScore.toString());
+        highScoreText = `<br>🎉 NEW HIGH SCORE: ${highScore}!`;
+    } else {
+        highScoreText = `<br>🏆 Best: ${highScore}`;
+    }
+    
+    winScoreEl.innerHTML = `Landed safely in NYC!<br><br>${winnerText}<br>Colletas: ${scoreP1} | Willy: ${scoreP2}${highScoreText}`;
     victoryScreen.classList.remove('hidden');
 }
 
