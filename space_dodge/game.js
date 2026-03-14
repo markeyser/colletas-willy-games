@@ -515,16 +515,15 @@ function drawObstacle(obs) {
         ctx.font = '16px "Fredoka One"';
         ctx.textAlign = 'center';
         ctx.fillText('⚠️ DANGER', obs.x, obs.y - obs.radius - 10);
+        
+        // Boss Fire Trail (Integrated)
+        drawMeteoriteTrail(obs.x, obs.y, obs.radius, true);
+        
         return;
     }
 
-    // Meteorite Fire Trail
-    ctx.fillStyle = 'rgba(255, 100, 0, 0.4)';
-    ctx.beginPath();
-    ctx.moveTo(obs.x - obs.radius*0.8, obs.y);
-    ctx.lineTo(obs.x, obs.y - obs.radius*1.8);
-    ctx.lineTo(obs.x + obs.radius*0.8, obs.y);
-    ctx.fill();
+    // Regular Meteorite Fire Trail
+    drawMeteoriteTrail(obs.x, obs.y, obs.radius, false);
 
     // Grey Meteorite
     ctx.fillStyle = '#666666';
@@ -646,6 +645,39 @@ function drawPlanet(planet) {
     ctx.fillText(planet.name, planet.x, planet.y - planet.size - 8);
     
     ctx.globalAlpha = 1.0;
+}
+
+function drawMeteoriteTrail(x, y, radius, isBoss) {
+    const time = Date.now() / 150;
+    const trailLen = radius * (isBoss ? 2.8 : 2.2);
+    const flicker = Math.sin(time * 1.5) * (radius * 0.2);
+    const flicker2 = Math.cos(time * 1.2) * (radius * 0.15);
+    
+    // Outer flame (Glow/Smoke)
+    const grad = ctx.createLinearGradient(x, y, x, y - trailLen);
+    grad.addColorStop(0, isBoss ? 'rgba(255, 0, 0, 0.7)' : 'rgba(255, 100, 0, 0.6)');
+    grad.addColorStop(0.4, isBoss ? 'rgba(255, 50, 0, 0.4)' : 'rgba(200, 50, 0, 0.3)');
+    grad.addColorStop(1, 'rgba(255, 0, 0, 0)');
+    
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(x - radius * 0.8, y);
+    // Wavy trail back pointing up
+    ctx.quadraticCurveTo(x - radius + flicker, y - trailLen/2, x, y - trailLen);
+    ctx.quadraticCurveTo(x + radius + flicker2, y - trailLen/2, x + radius * 0.8, y);
+    ctx.fill();
+
+    // Inner hot core (Hot lava/flame)
+    const innerGrad = ctx.createLinearGradient(x, y, x, y - trailLen * 0.6);
+    innerGrad.addColorStop(0, '#ffffdd'); // white hot
+    innerGrad.addColorStop(0.3, '#ffcc00'); // yellow
+    innerGrad.addColorStop(1, 'rgba(255, 100, 0, 0)');
+    
+    ctx.fillStyle = innerGrad;
+    ctx.beginPath();
+    ctx.moveTo(x - radius * 0.4, y);
+    ctx.quadraticCurveTo(x + flicker, y - trailLen * 0.7, x + radius * 0.4, y);
+    ctx.fill();
 }
 
 function spawnPlanets() {
