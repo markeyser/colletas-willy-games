@@ -38,6 +38,7 @@ let hsWilly = parseInt(localStorage.getItem('spaceDodge_hsWilly') || '0');
 let shakeTimer = 0;
 let planets = []; // Background planet fly-bys
 let bossSpawned = false;
+let particles = []; // For collection effects
 
 // Per-player stats for end-of-game awards
 let statsP1 = { stars: 0, ufos: 0, shields: 0, hits: 0 };
@@ -113,6 +114,20 @@ function spawnPopup(x, y, text, color) {
     popups.push({ x, y, text, color, life: 1.0 });
 }
 
+function spawnCollectionParticles(x, y, color) {
+    for (let i = 0; i < 8; i++) {
+        particles.push({
+            x: x,
+            y: y,
+            vx: (Math.random() - 0.5) * 6,
+            vy: (Math.random() - 0.5) * 6,
+            size: Math.random() * 3 + 1,
+            color: color,
+            life: 1.0
+        });
+    }
+}
+
 function startBGM() {
     // We use the MP3 instead of synthesized oscillator
     bgMusic.play().catch(e => console.log('BGM restricted by browser', e));
@@ -137,7 +152,10 @@ for(let i=0; i<100; i++) {
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
         size: Math.random() * 2 + 1,
-        speed: Math.random() * 1 + 0.5
+        speed: Math.random() * 1 + 0.5,
+        twinkle: Math.random() > 0.8,
+        twinkleSpeed: 0.05 + Math.random() * 0.1,
+        opacity: Math.random()
     });
 }
 
@@ -211,6 +229,7 @@ function startGame() {
     shakeTimer = 0;
     planets = [];
     bossSpawned = false;
+    particles = [];
     statsP1 = { stars: 0, ufos: 0, shields: 0, hits: 0 };
     statsP2 = { stars: 0, ufos: 0, shields: 0, hits: 0 };
     lastTimeUpdate = Date.now();
@@ -274,6 +293,19 @@ function drawColletas(x, y, w, h) {
     ctx.lineTo(x + w, y + h); // right tail
     ctx.lineTo(x, y + h); // left tail
     ctx.fill();
+
+    // Wings/Fins (Aesthetic Polish)
+    ctx.fillStyle = players.colletas.color;
+    ctx.beginPath();
+    ctx.moveTo(x, y + h - 20); // Left wing
+    ctx.lineTo(x - 15, y + h);
+    ctx.lineTo(x + 5, y + h);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(x + w, y + h - 20); // Right wing
+    ctx.lineTo(x + w + 15, y + h);
+    ctx.lineTo(x + w - 5, y + h);
+    ctx.fill();
     
     // Flame — scales with speed
     const flameLen = 20 + (speed * 3) + Math.random() * 10;
@@ -323,6 +355,19 @@ function drawWilly(x, y, w, h) {
     ctx.moveTo(x + w/2, y); // nose
     ctx.lineTo(x + w, y + h); // right tail
     ctx.lineTo(x, y + h); // left tail
+    ctx.fill();
+
+    // Wings/Fins (Aesthetic Polish)
+    ctx.fillStyle = players.willy.color;
+    ctx.beginPath();
+    ctx.moveTo(x, y + h - 20); // Left wing
+    ctx.lineTo(x - 15, y + h);
+    ctx.lineTo(x + 5, y + h);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(x + w, y + h - 20); // Right wing
+    ctx.lineTo(x + w + 15, y + h);
+    ctx.lineTo(x + w - 5, y + h);
     ctx.fill();
     
     // Flame — scales with speed
@@ -378,6 +423,9 @@ function drawWilly(x, y, w, h) {
 
 function drawObstacle(obs) {
     if (obs.type === 'star') {
+        // Star Glow
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#ffff00';
         // Draw 5-pointed Star
         ctx.fillStyle = '#ffff00';
         ctx.strokeStyle = '#ffcc00';
@@ -397,9 +445,13 @@ function drawObstacle(obs) {
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
+        ctx.shadowBlur = 0;
         return;
     }
     if (obs.type === 'ufo') {
+        // UFO Glow
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#33cc33';
         // Draw UFO
         ctx.fillStyle = '#33cc33'; // green dome
         ctx.beginPath();
@@ -427,6 +479,7 @@ function drawObstacle(obs) {
         ctx.textBaseline = 'middle';
         ctx.fillText('🛡️', obs.x, obs.y);
         ctx.textBaseline = 'alphabetic';
+        ctx.shadowBlur = 0;
         return;
     }
     if (obs.type === 'boss') {
@@ -464,6 +517,14 @@ function drawObstacle(obs) {
         ctx.fillText('⚠️ DANGER', obs.x, obs.y - obs.radius - 10);
         return;
     }
+
+    // Meteorite Fire Trail
+    ctx.fillStyle = 'rgba(255, 100, 0, 0.4)';
+    ctx.beginPath();
+    ctx.moveTo(obs.x - obs.radius*0.8, obs.y);
+    ctx.lineTo(obs.x, obs.y - obs.radius*1.8);
+    ctx.lineTo(obs.x + obs.radius*0.8, obs.y);
+    ctx.fill();
 
     // Grey Meteorite
     ctx.fillStyle = '#666666';
@@ -661,6 +722,14 @@ function update() {
         if (planets[i].alpha < planets[i].targetAlpha) planets[i].alpha += dt * 0.3;
     }
 
+    // Update particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+        particles[i].x += particles[i].vx;
+        particles[i].y += particles[i].vy;
+        particles[i].life -= dt * 1.5;
+        if (particles[i].life <= 0) particles.splice(i, 1);
+    }
+
     // Obstacles Update
     if (timeLeft > 0) {
         spawnObstacle();
@@ -743,16 +812,19 @@ function handleCollision(playerNum, obs) {
         if (playerNum === 1) { shieldP1 = 3.0; statsP1.shields++; }
         if (playerNum === 2) { shieldP2 = 3.0; statsP2.shields++; }
         spawnPopup(px, py, '🛡️', '#00ccff');
+        spawnCollectionParticles(px, py, '#00ccff');
     } else if (obs.type === 'ufo') {
         playSound('collect');
         if (playerNum === 1) { scoreP1 += 20; statsP1.ufos++; }
         if (playerNum === 2) { scoreP2 += 20; statsP2.ufos++; }
         spawnPopup(px, py, '+20', '#ffd700');
+        spawnCollectionParticles(px, py, '#ffd700');
     } else if (obs.type === 'star') {
         playSound('collect');
         if (playerNum === 1) { scoreP1 += 10; statsP1.stars++; }
         if (playerNum === 2) { scoreP2 += 10; statsP2.stars++; }
         spawnPopup(px, py, '+10', '#33ff66');
+        spawnCollectionParticles(px, py, '#33ff66');
     } else if (obs.type === 'boss') {
         // Boss meteor hit — big penalty!
         playSound('crash');
@@ -776,14 +848,46 @@ function draw() {
         ctx.translate(shakeX, shakeY);
     }
     
-    ctx.clearRect(-20, -20, canvas.width + 40, canvas.height + 40);
-
-    // Draw Stars (with speed streaks)
-    ctx.fillStyle = '#ffffff';
-    for(let i=0; i<stars.length; i++){
-        const streakLen = speed > 5 ? (speed - 5) * 1.5 : 0;
-        ctx.fillRect(stars[i].x, stars[i].y, stars[i].size, stars[i].size + streakLen);
+    // Dynamic Background Gradient (Navy -> Purple -> BlueBlack)
+    let bgGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    const progress = (60 - timeLeft) / 60;
+    if (progress < 0.3) {
+        bgGradient.addColorStop(0, '#000033'); // Navy
+        bgGradient.addColorStop(1, '#000011');
+    } else if (progress < 0.7) {
+        bgGradient.addColorStop(0, '#1a0033'); // Purple shift
+        bgGradient.addColorStop(1, '#000011');
+    } else {
+        bgGradient.addColorStop(0, '#000011'); // Dark Space
+        bgGradient.addColorStop(1, '#000000');
     }
+    ctx.fillStyle = bgGradient;
+    ctx.fillRect(-20, -20, canvas.width + 40, canvas.height + 40);
+
+    // Draw Stars (with speed streaks and twinkling)
+    for(let i=0; i<stars.length; i++){
+        let s = stars[i];
+        if (s.twinkle) {
+            s.opacity += s.twinkleSpeed;
+            if (s.opacity > 1 || s.opacity < 0.2) s.twinkleSpeed *= -1;
+        }
+        ctx.globalAlpha = s.opacity;
+        ctx.fillStyle = '#ffffff';
+        const streakLen = speed > 5 ? (speed - 5) * 1.5 : 0;
+        ctx.fillRect(s.x, s.y, s.size, s.size + streakLen);
+    }
+    ctx.globalAlpha = 1.0;
+    
+    // Draw particles
+    for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.globalAlpha = 1.0;
     
     // Draw planet fly-bys (behind everything)
     for (let i = 0; i < planets.length; i++) {
