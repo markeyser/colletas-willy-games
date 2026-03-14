@@ -25,7 +25,7 @@ let gameState = 'START'; // START, PLAYING, PAUSED, GAMEOVER, VICTORY
 let timeLeft = 60;
 let scoreP1 = 0;
 let scoreP2 = 0;
-let speed = 2.5; // Starts slower for kids
+let speed = 2.0; // Starts very slow for kids
 let animationId;
 let lastTimeUpdate = 0;
 let invulnP1 = 0;
@@ -165,7 +165,7 @@ function startGame() {
     timeLeft = 60;
     scoreP1 = 0;
     scoreP2 = 0;
-    speed = 2.5; // Easier for kids
+    speed = 2.0; // Starts very slow for kids
     obstacles = [];
     moon.y = 550;
     earth.y = -200;
@@ -194,9 +194,10 @@ function startGame() {
 }
 
 function spawnObstacle() {
-    // Base difficulty 1% chance per frame. At 30s left, 1.5%. At 0s, 2%. Very gentle curve for kids.
-    const difficultyProgress = (60 - timeLeft) / 60; 
-    const spawnChance = 0.01 + (difficultyProgress * 0.015);
+    // Quadratic curve: gentle at start, steep ramp in last 20s
+    const difficultyProgress = (60 - timeLeft) / 60;
+    const curve = difficultyProgress * difficultyProgress; // quadratic: 0→0.25→1
+    const spawnChance = 0.005 + (curve * 0.04);
     
     if (Math.random() < spawnChance) { 
         const size = Math.random() * 30 + 20;
@@ -426,9 +427,10 @@ function update() {
         }
     }
     
-    // Gentle progressive speed increase over the 60 seconds
+    // Quadratic speed ramp: 2.0 at start → 9.0 at end, steeper in final seconds
     const difficultyProgress = (60 - timeLeft) / 60;
-    speed = 2.5 + (difficultyProgress * 4); 
+    const curve = difficultyProgress * difficultyProgress;
+    speed = 2.0 + (curve * 7.0); 
 
     // Scroll moon down
     if (moon.y < canvas.height + 200) {
