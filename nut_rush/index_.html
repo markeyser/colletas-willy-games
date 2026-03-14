@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Nut Rush!</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #a0d9ef; /* Light sky blue */
+            font-family: 'Arial', sans-serif;
+        }
+        canvas {
+            border: 3px solid #8b4513; /* Brown border */
+            background-color: #e0f7fa; /* Lighter blue */
+            display: block;
+            margin: 0 auto;
+        }
+        #ui {
+            margin-top: 15px;
+            font-size: 20px;
+            color: #5d4037; /* Darker brown text */
+            width: 600px; /* Match canvas width */
+            display: flex;
+            justify-content: space-between;
+        }
+        #title {
+            font-size: 30px;
+            color: #d2691e; /* Chocolate color */
+            margin-bottom: 10px;
+            font-weight: bold;
+            text-shadow: 1px 1px #fff;
+        }
+         #instructions {
+            font-size: 14px;
+            color: #6a1b9a; /* Purple */
+            margin-bottom: 10px;
+         }
+         #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            color: red;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            display: none; /* Hidden initially */
+            text-align: center;
+            z-index: 10;
+         }
+    </style>
+</head>
+<body>
+    <div id="title">🌰 Nut Rush! 🌰</div>
+    <div id="instructions">
+        P1 (Collets): A/D | P2 (Willy): Left/Right Arrow
+    </div>
+    <canvas id="gameCanvas" width="600" height="400"></canvas>
+    <div id="ui">
+        <span id="score1">Collets: 0</span>
+        <span id="timer">Time: 60</span>
+        <span id="score2">Willy: 0</span>
+    </div>
+     <div id="gameOver">
+        Game Over!<br>
+        <span id="finalScore"></span><br>
+        <button onclick="restartGame()">Play Again?</button>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>

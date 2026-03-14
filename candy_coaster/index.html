@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Cotton Coaster Clash</title>
+  <style>
+    :root {
+      --brown: #6d4c41;
+      --sky: #a0d9ef;
+      --canvas-bg: #dff6ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at 30% 20%, #ffffff 0%, #d9f4ff 25%, var(--sky) 60%);
+      font-family: 'Comic Sans MS', 'Arial', cursive, sans-serif;
+      color: var(--brown);
+      overflow: hidden;
+      touch-action: none;
+    }
+    .game-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: env(safe-area-inset-top, 10px);
+        position: relative;
+    }
+    #title {
+      font-size: 36px;
+      font-weight: bold;
+      margin: 6px 0 4px;
+      text-shadow: 2px 2px #fff;
+    }
+    #instructions {
+      font-size: 14px;
+      color: #6a1b9a;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+    canvas {
+      border: 5px solid var(--brown);
+      background: linear-gradient(#e8f9ff 0%, var(--canvas-bg) 40%, #c8ebff 100%);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+      max-width: 100%;
+    }
+    #ui {
+      width: 820px;
+      max-width: 95vw;
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+      font-size: 20px;
+      font-weight: bold;
+      text-shadow: 1px 1px #fff;
+    }
+    .score-display {
+      transition: transform 0.1s ease-out, color 0.1s ease-out;
+    }
+    .score-pop { transform: scale(1.15); color: #ffeb3b; }
+    .score-bad-pop { transform: scale(1.05); color: #f44336; }
+    .overlay-message {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 72px;
+      font-weight: bold;
+      color: white;
+      background: rgba(0, 0, 0, 0.65);
+      padding: 26px 42px;
+      border-radius: 18px;
+      text-align: center;
+      z-index: 100;
+      display: none;
+      text-shadow: 3px 3px #555;
+      pointer-events: none;
+    }
+    #countdown { font-size: 90px; }
+    #pauseIndicator { font-size: 64px; }
+    #gameOver { 
+        font-size: 46px; 
+        pointer-events: auto;
+    }
+    #gameOver button {
+      font-size: 22px;
+      padding: 10px 18px;
+      margin-top: 16px;
+      cursor: pointer;
+      border: none;
+      background: #4caf50;
+      color: white;
+      border-radius: 8px;
+      font-family: 'Comic Sans MS', 'Arial', cursive, sans-serif;
+    }
+    #gameOver button:hover { background: #45a049; }
+    #finalScore { display: block; font-size: 24px; margin-top: 8px; color: #ffeb3b; }
+    #winner { display: block; font-size: 26px; color: #ff9800; margin-top: 6px; }
+
+    /* --- Touch Controls UI --- */
+    #touch-controls {
+        display: flex;
+        justify-content: space-between;
+        width: 820px;
+        max-width: 95vw;
+        margin-top: 10px;
+        padding-bottom: env(safe-area-inset-bottom, 20px);
+    }
+
+    .player-controls {
+        display: flex;
+        gap: 15px;
+    }
+
+    .touch-btn {
+        background-color: rgba(255, 255, 255, 0.6);
+        border: 3px solid rgba(0,0,0,0.2);
+        border-radius: 50%;
+        width: 70px;
+        height: 70px;
+        font-size: 30px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        user-select: none;
+        -webkit-user-select: none;
+        color: #4e342e;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .touch-btn:active {
+        background-color: rgba(255, 255, 255, 0.9);
+        transform: scale(0.95);
+    }
+
+    #btn-p1-left, #btn-p1-right { border-color: #D2691E; color: #D2691E;}
+    #btn-p2-left, #btn-p2-right { border-color: #A0522D; color: #A0522D;}
+    
+    .pause-btn-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #btn-pause {
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+        border-radius: 10px;
+        background-color: rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container">
+      <div id="title">🎢 Cotton Coaster Clash 🎢</div>
+      <div id="instructions">
+        Steer carts & snag cloud candies! P1: A/D/Touch | P2: Left/Right/Touch
+      </div>
+      
+      <div id="ui">
+        <span id="score1" class="score-display">Collets: 0</span>
+        <span id="timer">Time: 60</span>
+        <span id="score2" class="score-display">Willy: 0</span>
+      </div>
+
+      <canvas id="gameCanvas" width="820" height="520"></canvas>
+      
+      <!-- Touch Controls Row -->
+      <div id="touch-controls">
+          <div class="player-controls">
+              <div class="touch-btn" id="btn-p1-left">←</div>
+              <div class="touch-btn" id="btn-p1-right">→</div>
+          </div>
+          
+          <div class="pause-btn-container">
+               <div class="touch-btn" id="btn-pause">⏸</div>
+          </div>
+
+          <div class="player-controls">
+              <div class="touch-btn" id="btn-p2-left">←</div>
+              <div class="touch-btn" id="btn-p2-right">→</div>
+          </div>
+      </div>
+
+      <div id="countdown" class="overlay-message">3</div>
+      <div id="pauseIndicator" class="overlay-message">Paused</div>
+      <div id="gameOver" class="overlay-message">
+        Sweet Ride!<br>
+        <span id="finalScore"></span>
+        <span id="winner"></span><br>
+        <button onclick="restartGame()">Ride Again?</button>
+      </div>
+  </div>
+
+  <audio id="catchSound" src="../nut_rush/catch.wav" preload="auto"></audio>
+  <audio id="powerupSound" src="../nut_rush/powerup.wav" preload="auto"></audio>
+  <audio id="bonkSound" src="../nut_rush/bonk.wav" preload="auto"></audio>
+  <audio id="music" src="../nut_rush/music.mp3" loop preload="auto"></audio>
+
+  <script src="coaster.js"></script>
+</body>
+</html>
