@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Space Dodge - Willi and Coletas</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="game-container">
+        <!-- Start screen overlay -->
+        <div id="start-screen" class="overlay">
+            <h1>Space Dodge</h1>
+            <h2>A Willi and Coletas Game!</h2>
+            <p>Dodge the meteorites and fly back to Earth!</p>
+            <p class="desktop-text">Colletas (Pink): A / D Keys<br>Willy (Blue): Left / Right Arrows</p>
+            <p class="mobile-text">Tap the on-screen buttons to steer!</p>
+            <button id="start-btn">Take Off!</button>
+        </div>
+
+        <!-- Game Over overlay -->
+        <div id="game-over-screen" class="overlay hidden">
+            <h1>CRASH!</h1>
+            <p>Oh no, a meteorite hit your spacecraft!</p>
+            <h2 id="final-score">Distance: 0 km</h2>
+            <button id="restart-btn">Try Again</button>
+            <a href="../index.html" class="hub-link">Back to Game Hub</a>
+        </div>
+        
+        <!-- Victory overlay -->
+        <div id="victory-screen" class="overlay hidden">
+            <h1>WELCOME TO NYC!</h1>
+            <p>You safely returned to Earth!</p>
+            <h2 id="win-score">Distance: 0 km</h2>
+            <button id="play-again-btn">Play Again</button>
+            <a href="../index.html" class="hub-link">Back to Game Hub</a>
+        </div>
+
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        
+        <!-- Touch Controls for iPad -->
+        <div id="touch-controls">
+            <div class="controls-p1">
+                <button id="btn-p1-left" class="touch-btn p1-color">&larr; Colletas</button>
+                <button id="btn-p1-right" class="touch-btn p1-color">Colletas &rarr;</button>
+            </div>
+            
+            <button id="btn-pause" class="touch-btn pause-color">|| Pause</button>
+
+            <div class="controls-p2">
+                <button id="btn-p2-left" class="touch-btn p2-color">&larr; Willy</button>
+                <button id="btn-p2-right" class="touch-btn p2-color">Willy &rarr;</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- The Audio Context must be initialized after a user interaction (like the start button) -->
+    <script src="game.js"></script>
+</body>
+</html>
