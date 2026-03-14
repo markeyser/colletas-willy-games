@@ -325,6 +325,20 @@ function drawColletas(x, y, w, h) {
         ctx.fill();
     }
 
+    // Hair (Brown Pigtails)
+    const hairSway = Math.sin(Date.now() / 150) * 5;
+    ctx.fillStyle = '#663300';
+    // Back of hair
+    ctx.fillRect(x + 8, y - 22, 34, 15);
+    // Pigtail Left
+    ctx.beginPath();
+    ctx.arc(x + 5, y - 10 + hairSway, 8, 0, Math.PI * 2);
+    ctx.fill();
+    // Pigtail Right
+    ctx.beginPath();
+    ctx.arc(x + 45, y - 10 - hairSway, 8, 0, Math.PI * 2);
+    ctx.fill();
+
     // Colletas Head (Orange Square)
     ctx.fillStyle = players.colletas.headColor;
     ctx.fillRect(x + 10, y - 20, 30, 30);
