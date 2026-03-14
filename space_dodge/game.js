@@ -57,7 +57,6 @@ const btnP1Left = document.getElementById('btn-p1-left');
 const btnP1Right = document.getElementById('btn-p1-right');
 const btnP2Left = document.getElementById('btn-p2-left');
 const btnP2Right = document.getElementById('btn-p2-right');
-const btnPause = document.getElementById('btn-pause');
 
 // Game State
 let gameState = 'START'; // START, PLAYING, PAUSED, GAMEOVER, VICTORY
@@ -244,9 +243,6 @@ setupButton(btnP1Left, players.colletas, 'isLeft');
 setupButton(btnP1Right, players.colletas, 'isRight');
 setupButton(btnP2Left, players.willy, 'isLeft');
 setupButton(btnP2Right, players.willy, 'isRight');
-
-btnPause.addEventListener('click', () => { togglePause(); });
-btnPause.addEventListener('touchstart', (e) => { e.preventDefault(); togglePause(); }, {passive: false});
 
 document.getElementById('start-btn').addEventListener('click', startGame);
 document.getElementById('restart-btn').addEventListener('click', startGame);

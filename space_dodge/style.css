@@ -217,16 +217,6 @@ button:active {
 
 .p1-color { background-color: rgba(255, 51, 153, 0.8); }
 .p2-color { background-color: rgba(0, 153, 255, 0.8); }
-.pause-color {
-    background-color: rgba(100, 100, 100, 0.8);
-    padding: 12px;
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
 
 .touch-btn:active {
     opacity: 0.7;
@@ -254,12 +244,6 @@ button:active {
     .touch-btn {
         padding: 10px 12px;
         font-size: 0.7rem;
-    }
-
-    .pause-color {
-        width: 42px;
-        height: 42px;
-        padding: 8px;
     }
 
     .rules-box {
