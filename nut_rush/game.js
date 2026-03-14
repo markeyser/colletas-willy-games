@@ -39,6 +39,7 @@ const ITEM_TYPES = {
     ROCK: 'ROCK',
     POWERUP_WIDE: 'POWERUP_WIDE',
     POWERUP_SPEED: 'POWERUP_SPEED',
+    MEGA_NUT: 'MEGA_NUT',
 };
 
 // --- Item Properties (Color, Score, Effect) ---
@@ -49,6 +50,7 @@ const ITEM_PROPS = {
     [ITEM_TYPES.ROCK]: { color: '#888888', score: 0, effect: 'stun', sound: bonkSound }, // Grey
     [ITEM_TYPES.POWERUP_WIDE]: { color: '#00BCD4', score: 0, effect: 'wide', sound: powerupSound, duration: 5000 }, // Cyan
     [ITEM_TYPES.POWERUP_SPEED]: { color: '#FF9800', score: 0, effect: 'speed', sound: powerupSound, duration: 5000 }, // Orange
+    [ITEM_TYPES.MEGA_NUT]: { color: '#FF4500', score: 20, sound: powerupSound }, // Orange Red
 };
 
 // --- Game State Variables ---
@@ -63,8 +65,25 @@ let isGameOver = true; // Start in game over state until countdown finishes
 let isCountingDown = false;
 let currentSpawnInterval = INITIAL_SPAWN_INTERVAL;
 let lastSpawnTime = 0;
+let popups = [];
+let megaNutSpawned = false;
+
+// --- High Scores ---
+let hsNutColletas = parseInt(localStorage.getItem('nutRush_hsColletas') || '0');
+let hsNutWilly = parseInt(localStorage.getItem('nutRush_hsWilly') || '0');
+
+// --- Parallax Forest ---
+const parallaxLayers = [
+    { y: CANVAS_HEIGHT - 120, speed: 0.1, color: '#2e7d32', height: 100 }, // Back hills
+    { y: CANVAS_HEIGHT - 80, speed: 0.3, color: '#388e3c', height: 80 },  // Mid trees
+    { y: CANVAS_HEIGHT - 40, speed: 0.6, color: '#43a047', height: 60 }   // Front grass
+];
 
 // --- Player Objects ---
+function spawnPopup(x, y, text, color) {
+    popups.push({ x, y, text, color, life: 1, maxLife: 1 });
+}
+
 function createPlayer(x, name, color, controls) {
     return {
         x: x,
@@ -80,6 +99,7 @@ function createPlayer(x, name, color, controls) {
         isStunned: false,
         stunTimer: null,
         powerupTimers: {}, // Stores setTimeout IDs for powerups
+        stats: { nuts: 0, golden: 0, rotten: 0, rocks: 0 },
         // Animation state
         bobOffset: 0,
         bobDirection: 1,
@@ -117,14 +137,20 @@ function createPlayer(x, name, color, controls) {
              ctx.fill();
 
              // Distinguishing features
-             if (this.name === "Collets") { // Pigtails
+             if (this.name === "Collets") { 
+                 // Pigtails with sway
+                 const sway = Math.sin(Date.now() / 150) * 4;
                  ctx.fillStyle = '#A0522D'; // Lighter brown for pigtails
-                 ctx.fillRect(currentX - 8, drawY + 10, 8, 20);
-                 ctx.fillRect(currentX + currentWidth, drawY + 10, 8, 20);
+                 // Left pigtail
+                 ctx.fillRect(currentX - 8, drawY + 10 + sway, 8, 20);
+                 // Right pigtail
+                 ctx.fillRect(currentX + currentWidth, drawY + 10 - sway, 8, 20);
+                 
                  ctx.beginPath();
-                 ctx.arc(currentX - 4, drawY + 10, 6, 0, Math.PI * 2); // Left tie
-                 ctx.arc(currentX + currentWidth + 4, drawY + 10, 6, 0, Math.PI * 2); // Right tie
+                 ctx.arc(currentX - 4, drawY + 10 + sway, 6, 0, Math.PI * 2); // Left tie
+                 ctx.arc(currentX + currentWidth + 4, drawY + 10 - sway, 6, 0, Math.PI * 2); // Right tie
                  ctx.fill();
+                 
                  // Mouth
                  ctx.strokeStyle = 'black';
                  ctx.lineWidth = 2;
@@ -267,6 +293,7 @@ function createPlayer(x, name, color, controls) {
             this.x = startX;
             this.y = CANVAS_HEIGHT - PLAYER_HEIGHT - 10;
             this.score = 0;
+            this.stats = { nuts: 0, golden: 0, rotten: 0, rocks: 0 };
             this.width = this.baseWidth;
             this.speed = PLAYER_BASE_SPEED;
             this.isStunned = false;
@@ -378,6 +405,20 @@ function drawItems() {
                 ctx.closePath();
                 ctx.fill();
                 break;
+            case ITEM_TYPES.MEGA_NUT:
+                // Giant Glowing Nut
+                const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 200);
+                ctx.shadowColor = '#FF4500';
+                ctx.shadowBlur = 15 + pulse * 10;
+                ctx.ellipse(0, 0, item.size / 2, item.size / 2.5, Math.PI / 4, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                // Add "MEGA" text
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 16px "Fredoka One"';
+                ctx.textAlign = 'center';
+                ctx.fillText('MEGA', 0, 5);
+                break;
             case ITEM_TYPES.POWERUP_WIDE:
             case ITEM_TYPES.POWERUP_SPEED:
                  // Simple square/circle for powerups
@@ -481,6 +522,15 @@ function handleItemCatch(player, item, itemIndex) {
     if(item.value > 0 || item.effect){ // Particles for good things
         createParticles(item.x + item.size / 2, item.y + item.size / 2, item.color);
     }
+    
+    // Stats and Popups
+    const px = player.x + player.width/2;
+    const py = player.y - 20;
+    if (item.type === ITEM_TYPES.NUT) { player.stats.nuts++; spawnPopup(px, py, '+1', '#8B4513'); }
+    else if (item.type === ITEM_TYPES.GOLDEN_NUT) { player.stats.golden++; spawnPopup(px, py, '+5', '#FFD700'); }
+    else if (item.type === ITEM_TYPES.ROTTEN_NUT) { player.stats.rotten++; spawnPopup(px, py, '-2', '#556B2F'); }
+    else if (item.type === ITEM_TYPES.ROCK) { player.stats.rocks++; spawnPopup(px, py, 'STUNNED!', '#888888'); }
+    else if (item.type === ITEM_TYPES.MEGA_NUT) { player.stats.nuts += 20; spawnPopup(px, py, '+20!', '#FF4500'); }
 
     // Remove the caught item
     items.splice(itemIndex, 1);
@@ -526,10 +576,61 @@ function updateTimer() {
 }
 
 function clearCanvas() {
-    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-     // Optional: Draw a simple static background if desired
-    // ctx.fillStyle = '#c8e6c9'; // Light green ground
-    // ctx.fillRect(0, CANVAS_HEIGHT - 10, CANVAS_WIDTH, 10);
+    // Dynamic Sky Gradient
+    let skyGrad = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
+    const progress = (GAME_DURATION - timerValue) / GAME_DURATION;
+    
+    if (progress > 0.75) { // Super Squirrel Tension (Sunset)
+        skyGrad.addColorStop(0, '#ff7043'); // Orange
+        skyGrad.addColorStop(1, '#ffd54f'); // Yellow
+    } else {
+        skyGrad.addColorStop(0, '#81d4fa'); // Sky Blue
+        skyGrad.addColorStop(1, '#e1f5fe');
+    }
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    drawParallax();
+}
+
+function drawParallax() {
+    parallaxLayers.forEach(layer => {
+        ctx.fillStyle = layer.color;
+        // Draw recurring shapes (trees/hills)
+        const itemWidth = 150;
+        const offset = (Date.now() * layer.speed) % itemWidth;
+        for (let x = -offset; x < CANVAS_WIDTH; x += itemWidth) {
+            ctx.beginPath();
+            if (layer.height > 80) { // Hills
+                ctx.arc(x + itemWidth/2, CANVAS_HEIGHT, itemWidth/1.5, Math.PI, 0);
+            } else { // Trees
+                ctx.moveTo(x + itemWidth/2, CANVAS_HEIGHT - layer.height);
+                ctx.lineTo(x + itemWidth/4, CANVAS_HEIGHT);
+                ctx.lineTo(x + itemWidth * 0.75, CANVAS_HEIGHT);
+            }
+            ctx.fill();
+        }
+    });
+}
+
+function updatePopups() {
+    const dt = 1/60;
+    for (let i = popups.length - 1; i >= 0; i--) {
+        popups[i].y -= 1.5;
+        popups[i].life -= dt;
+        if (popups[i].life <= 0) popups.splice(i, 1);
+    }
+}
+
+function drawPopups() {
+    popups.forEach(p => {
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        ctx.font = 'bold 20px "Fredoka One", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(p.text, p.x, p.y);
+    });
+    ctx.globalAlpha = 1.0;
 }
 
 function determineWinner() {
@@ -599,6 +700,7 @@ function startGame() {
     timerValue = GAME_DURATION;
     currentSpawnInterval = INITIAL_SPAWN_INTERVAL;
     lastSpawnTime = 0; // Reset spawn timer
+    megaNutSpawned = false;
 
     // Reset players
     player1.reset(CANVAS_WIDTH / 4 - PLAYER_WIDTH / 2);
@@ -640,7 +742,40 @@ function endGame() {
 
     // Display Game Over message
     const winnerText = determineWinner();
-    finalScoreDisplay.textContent = `Scores - ${player1.name}: ${player1.score} | ${player2.name}: ${player2.score}`;
+    
+    // Awards Logic
+    const getAwards = (p) => {
+        let awards = [];
+        if (p.stats.nuts > 30) awards.push("👑 Nut King");
+        if (p.stats.golden > 5) awards.push("✨ Gold Digger");
+        if (p.stats.rocks > 3) awards.push("🪨 Rock Magnet");
+        if (p.score > 80) awards.push("🐿️ Super Squirrel");
+        return awards.length > 0 ? awards.join(" | ") : "🌟 Good Effort!";
+    };
+
+    // Save High Scores
+    if (player1.score > hsNutColletas) {
+        hsNutColletas = player1.score;
+        localStorage.setItem('nutRush_hsColletas', hsNutColletas);
+    }
+    if (player2.score > hsNutWilly) {
+        hsNutWilly = player2.score;
+        localStorage.setItem('nutRush_hsWilly', hsNutWilly);
+    }
+
+    const awardsP1 = getAwards(player1);
+    const awardsP2 = getAwards(player2);
+
+    finalScoreDisplay.innerHTML = `
+        <div style="margin-bottom:10px;">
+           <b>${player1.name}:</b> ${player1.score} (Best: ${hsNutColletas})<br/>
+           <small style="color:#FFD700">${awardsP1}</small>
+        </div>
+        <div style="margin-bottom:10px;">
+           <b>${player2.name}:</b> ${player2.score} (Best: ${hsNutWilly})<br/>
+           <small style="color:#FFD700">${awardsP2}</small>
+        </div>
+    `;
     winnerDisplay.textContent = winnerText;
     gameOverDisplay.style.display = 'block';
 
@@ -675,12 +810,31 @@ function gameLoop(timestamp) { // timestamp provided by requestAnimationFrame
 
     updateItems();
     updateParticles();
+    updatePopups();
     checkCollisions();
+
+    // Mega Nut Spawn at 10s
+    if (timerValue <= 10 && !megaNutSpawned) {
+        megaNutSpawned = true;
+        const props = ITEM_PROPS[ITEM_TYPES.MEGA_NUT];
+        items.push({
+            x: CANVAS_WIDTH / 2 - 40,
+            y: -100,
+            size: 80,
+            speed: 5,
+            color: props.color,
+            type: ITEM_TYPES.MEGA_NUT,
+            value: props.score,
+            rotation: 0,
+            rotationSpeed: 0.1
+        });
+    }
 
     // --- Drawing ---
     clearCanvas();
     drawItems();
     drawParticles();
+    drawPopups();
     player1.draw();
     player2.draw();
 
