@@ -10,6 +10,8 @@ const pauseIndicatorDisplay = document.getElementById('pauseIndicator');
 const gameOverDisplay = document.getElementById('gameOver');
 const finalScoreDisplay = document.getElementById('finalScore');
 const winnerDisplay = document.getElementById('winner');
+const startScreen = document.getElementById('start-screen');
+const startBtn = document.getElementById('start-btn');
 
 // --- Audio Elements ---
 const catchSound = document.getElementById('catchSound');
@@ -61,7 +63,7 @@ let items = [];
 let particles = [];
 let keysPressed = {};
 let isPaused = false;
-let isGameOver = true; // Start in game over state until countdown finishes
+let isGameOver = true; // Stay true until start button pressed
 let isCountingDown = false;
 let currentSpawnInterval = INITIAL_SPAWN_INTERVAL;
 let lastSpawnTime = 0;
@@ -775,6 +777,9 @@ function endGame() {
            <b>${player2.name}:</b> ${player2.score} (Best: ${hsNutWilly})<br/>
            <small style="color:#FFD700">${awardsP2}</small>
         </div>
+        <div style="margin-top:15px; font-size: 18px;">
+            <a href="../index.html" style="color: #4CAF50; text-decoration: none; border: 2px solid #4CAF50; padding: 5px 15px; border-radius: 20px;">Back to Game Hub</a>
+        </div>
     `;
     winnerDisplay.textContent = winnerText;
     gameOverDisplay.style.display = 'block';
@@ -919,5 +924,10 @@ window.onload = () => {
 
     setupTouchControls(); // Initialize touch buttons
 
-    showCountdown(); // Start the game flow
+    // Click handler to start the game
+    startBtn.addEventListener('click', () => {
+        startScreen.classList.add('hidden');
+        resetGame(); // Ensure state is fresh
+        showCountdown(); // Start the game flow
+    });
 };

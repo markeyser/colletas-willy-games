@@ -10,6 +10,8 @@ const pauseIndicatorDisplay = document.getElementById('pauseIndicator');
 const gameOverDisplay = document.getElementById('gameOver');
 const finalScoreDisplay = document.getElementById('finalScore');
 const winnerDisplay = document.getElementById('winner');
+const startScreen = document.getElementById('start-screen');
+const startBtn = document.getElementById('start-btn');
 
 // Audio
 const catchSound = document.getElementById('catchSound');
@@ -732,6 +734,12 @@ function setupTouchControls() {
 }
 
 // Boot
+startBtn.addEventListener('click', () => {
+    startScreen.classList.add('hidden');
+    resetGame();
+    startCountdown();
+});
+
 setupTouchControls();
-resetGame();
-startCountdown();
+// resetGame(); - Wait for button
+// startCountdown(); - Wait for button

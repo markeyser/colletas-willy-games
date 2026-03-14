@@ -179,10 +179,84 @@
             background-color: rgba(0,0,0,0.1);
         }
 
+        /* Intro Screen Overlay */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(46, 125, 50, 0.95); /* Deep Forest Green */
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            border: 5px solid #6d4c41;
+            box-sizing: border-box;
+            border-radius: 5px;
+            padding: 20px;
+            text-align: center;
+            font-family: 'Fredoka One', cursive;
+        }
+
+        .overlay h1 { font-size: 56px; margin: 0; text-shadow: 3px 3px #388e3c; color: #fff; }
+        .overlay h2 { font-size: 28px; color: #ffeb3b; margin: 10px 0; }
+        .overlay p { font-size: 18px; margin: 10px 0; max-width: 80%; line-height: 1.4; }
+
+        .rules-box {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            padding: 15px 25px;
+            margin: 15px 0;
+            border: 2px dashed #ffeb3b;
+        }
+        .rules-title { font-size: 24px; color: #ffeb3b; margin-bottom: 10px; font-weight: bold; }
+        .rule-item { font-size: 18px; margin: 8px 0; text-align: left; display: flex; align-items: center; }
+        .rule-item strong { color: #ffeb3b; margin: 0 5px; }
+        .good { color: #81c784; }
+        .bad { color: #e57373; }
+        .great { color: #ffd54f; }
+
+        .start-btn {
+            font-size: 28px;
+            padding: 15px 40px;
+            background-color: #ff9800;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
+            font-family: 'Fredoka One', cursive;
+            margin-top: 10px;
+        }
+        .start-btn:hover { transform: scale(1.05); background-color: #f57c00; }
+
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
     <div class="game-container">
+        <!-- Start Screen Overlay -->
+        <div id="start-screen" class="overlay">
+            <h1>Nut Rush! Deluxe</h1>
+            <h2>Forest Fun with Colletas & Willy</h2>
+            <p>Race through the forest! Catch as many nuts as you can in <strong>60 seconds</strong>! Watch out for rocks!</p>
+            
+            <div class="rules-box">
+                <p class="rules-title">🌳 Forest Finds</p>
+                <div class="rule-item">🌰 <strong>Common Nuts</strong> — Catch them! <span class="good">+1 pt</span></div>
+                <div class="rule-item">✨ <strong>Golden Nuts</strong> — Rare find! <span class="great">+5 pts</span></div>
+                <div class="rule-item">🪨 <strong>Rocks</strong> — Ouch! <span class="bad">Stunned for 1s</span></div>
+                <div class="rule-item">👑 <strong>Mega Nut</strong> — Spawns at 10s! <span class="great">+20 pts</span></div>
+            </div>
+
+            <p>Colletas: A / D&nbsp;&nbsp;|&nbsp;&nbsp;Willy: ← / →</p>
+            <button class="start-btn" id="start-btn">Go Squirrels! 🐿️</button>
+        </div>
+
         <div id="title">🌰 Nut Rush! Deluxe 🌰</div>
         <div id="instructions">
             P1 (Collets): A/D or Touch | P2 (Willy): Left/Right or Touch

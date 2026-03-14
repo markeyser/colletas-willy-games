@@ -156,10 +156,96 @@
         border-radius: 10px;
         background-color: rgba(0,0,0,0.1);
     }
+
+    /* Intro Screen Overlay */
+    .overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(255, 121, 198, 0.95); /* Candy Pink */
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        border: 5px solid #8b5a2b;
+        box-sizing: border-box;
+        border-radius: 5px;
+        padding: 20px;
+        text-align: center;
+        font-family: 'Fredoka One', cursive, sans-serif;
+    }
+
+    .overlay h1 { font-size: 56px; margin: 0; text-shadow: 3px 3px #ff1493; color: #fff; }
+    .overlay h2 { font-size: 28px; color: #ffd166; margin: 10px 0; }
+    .overlay p { font-size: 18px; margin: 10px 0; max-width: 80%; line-height: 1.4; }
+
+    .rules-box {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 15px;
+        padding: 15px 25px;
+        margin: 15px 0;
+        border: 2px dashed #ffd166;
+    }
+    .rules-title { font-size: 24px; color: #ffd166; margin-bottom: 10px; font-weight: bold; }
+    .rule-item { font-size: 18px; margin: 8px 0; text-align: left; display: flex; align-items: center; }
+    .rule-item strong { color: #ffd166; margin: 0 5px; }
+    .good { color: #81c784; }
+    .bad { color: #e57373; }
+    .great { color: #ffd166; }
+
+    .start-btn {
+        font-size: 28px;
+        padding: 15px 40px;
+        background-color: #ffb74d;
+        color: white;
+        border: none;
+        border-radius: 50px;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        transition: transform 0.2s;
+        font-family: 'Fredoka One', cursive, sans-serif;
+        margin-top: 10px;
+    }
+    .start-btn:hover { transform: scale(1.05); background-color: #ffa726; }
+
+    .hidden { display: none !important; }
+    .hub-link {
+        display: inline-block;
+        margin-top: 15px;
+        color: #ffeb3b;
+        text-decoration: none;
+        border: 2px solid #ffeb3b;
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-size: 18px;
+    }
   </style>
 </head>
 <body>
   <div class="game-container">
+      <!-- Start Screen Overlay -->
+      <div id="start-screen" class="overlay">
+          <h1>Cotton Coaster Clash</h1>
+          <h2>Sweet Rides with Colletas & Willy</h2>
+          <p>Ride the rails! Catch as many candies as you can in <strong>60 seconds</strong>! Dodge the sour ones!</p>
+          
+          <div class="rules-box">
+              <p class="rules-title">🍭 Sugar Snacks</p>
+              <div class="rule-item">🍭 <strong>Sweets</strong> — Catch them! <span class="good">+1 pt</span></div>
+              <div class="rule-item">🍬 <strong>Mega Candy</strong> — Sweet boost! <span class="great">+3 pts</span></div>
+              <div class="rule-item">🍄 <strong>Sour Candy</strong> — Yuck! <span class="bad">−2 pts</span></div>
+              <div class="rule-item">🚀 <strong>Rocket Candy</strong> — Sugar Rush! <span class="great">Speed Boost</span></div>
+              <div class="rule-item">🍭 <strong>Super Sweet</strong> — Spawns at 10s! <span class="great">+20 pts</span></div>
+          </div>
+
+          <p>Colletas: A / D&nbsp;&nbsp;|&nbsp;&nbsp;Willy: ← / →</p>
+          <button class="start-btn" id="start-btn">Start Ride! 🎢</button>
+      </div>
+
       <div id="title">🎢 Cotton Coaster Clash 🎢</div>
       <div id="instructions">
         Steer carts & snag cloud candies! P1: A/D/Touch | P2: Left/Right/Touch
@@ -196,7 +282,8 @@
         Sweet Ride!<br>
         <span id="finalScore"></span>
         <span id="winner"></span><br>
-        <button onclick="restartGame()">Ride Again?</button>
+        <button onclick="restartGame()">Ride Again?</button><br>
+        <a href="../index.html" class="hub-link">Back to Game Hub</a>
       </div>
   </div>
 
