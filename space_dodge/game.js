@@ -338,154 +338,165 @@ function spawnObstacle() {
 }
 
 // Drawing Functions
-function drawColletas(x, y, w, h) {
-    // Ship Body (Pink)
-    ctx.fillStyle = players.colletas.color;
+function drawRocketFlame(x, y, w, h, outerColor, innerColor) {
+    const flameLen = 22 + (speed * 3) + Math.random() * 10;
+
+    ctx.fillStyle = outerColor;
     ctx.beginPath();
-    ctx.moveTo(x + w/2, y); // nose
-    ctx.lineTo(x + w, y + h); // right tail
-    ctx.lineTo(x, y + h); // left tail
+    ctx.moveTo(x + w * 0.34, y + h * 0.86);
+    ctx.quadraticCurveTo(x + w * 0.12, y + h + flameLen * 0.18, x + w * 0.28, y + h + flameLen);
+    ctx.quadraticCurveTo(x + w * 0.5, y + h + flameLen * 0.72, x + w * 0.72, y + h + flameLen);
+    ctx.quadraticCurveTo(x + w * 0.88, y + h + flameLen * 0.18, x + w * 0.66, y + h * 0.86);
+    ctx.closePath();
     ctx.fill();
 
-    // Wings/Fins (Aesthetic Polish)
-    ctx.fillStyle = players.colletas.color;
+    ctx.fillStyle = innerColor;
     ctx.beginPath();
-    ctx.moveTo(x, y + h - 20); // Left wing
-    ctx.lineTo(x - 15, y + h);
-    ctx.lineTo(x + 5, y + h);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(x + w, y + h - 20); // Right wing
-    ctx.lineTo(x + w + 15, y + h);
-    ctx.lineTo(x + w - 5, y + h);
-    ctx.fill();
-    
-    // Flame — scales with speed
-    const flameLen = 20 + (speed * 3) + Math.random() * 10;
-    ctx.fillStyle = '#ff9900';
-    ctx.beginPath();
-    ctx.moveTo(x + w/4, y + h);
-    ctx.lineTo(x + w/2, y + h + flameLen);
-    ctx.lineTo(x + w*3/4, y + h);
-    ctx.fill();
-    // Inner flame
-    if (speed > 4) {
-        ctx.fillStyle = '#ffff66';
-        ctx.beginPath();
-        ctx.moveTo(x + w/3, y + h);
-        ctx.lineTo(x + w/2, y + h + flameLen * 0.6);
-        ctx.lineTo(x + w*2/3, y + h);
-        ctx.fill();
-    }
-
-    // Hair (Brown Pigtails)
-    const hairSway = Math.sin(Date.now() / 150) * 5;
-    ctx.fillStyle = '#663300';
-    // Back of hair
-    ctx.fillRect(x + 8, y - 22, 34, 15);
-    // Pigtail Left
-    ctx.beginPath();
-    ctx.arc(x + 5, y - 10 + hairSway, 8, 0, Math.PI * 2);
-    ctx.fill();
-    // Pigtail Right
-    ctx.beginPath();
-    ctx.arc(x + 45, y - 10 - hairSway, 8, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Colletas Head (Orange Square)
-    ctx.fillStyle = players.colletas.headColor;
-    ctx.fillRect(x + 10, y - 20, 30, 30);
-    
-    // Smile and eyes
-    ctx.fillStyle = 'black';
-    ctx.beginPath();
-    ctx.arc(x + 20, y - 10, 2, 0, Math.PI*2); // L eye
-    ctx.arc(x + 30, y - 10, 2, 0, Math.PI*2); // R eye
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(x + 25, y - 5, 5, 0, Math.PI); // smile
-    ctx.stroke();
-
-    // Hat (Yellow Triangle)
-    ctx.fillStyle = players.colletas.hatColor;
-    ctx.beginPath();
-    ctx.moveTo(x + 25, y - 40);
-    ctx.lineTo(x + 40, y - 20);
-    ctx.lineTo(x + 10, y - 20);
+    ctx.moveTo(x + w * 0.42, y + h * 0.9);
+    ctx.quadraticCurveTo(x + w * 0.34, y + h + flameLen * 0.35, x + w * 0.45, y + h + flameLen * 0.82);
+    ctx.quadraticCurveTo(x + w * 0.58, y + h + flameLen * 0.45, x + w * 0.58, y + h * 0.9);
+    ctx.closePath();
     ctx.fill();
 }
 
-function drawWilly(x, y, w, h) {
-    // Ship Body (Blue)
-    ctx.fillStyle = players.willy.color;
-    ctx.beginPath();
-    ctx.moveTo(x + w/2, y); // nose
-    ctx.lineTo(x + w, y + h); // right tail
-    ctx.lineTo(x, y + h); // left tail
-    ctx.fill();
+function drawKidFace(x, y, w, h, options) {
+    const headX = x + w * 0.18;
+    const headY = y - h * 0.18;
+    const headSize = w * 0.6;
 
-    // Wings/Fins (Aesthetic Polish)
-    ctx.fillStyle = players.willy.color;
-    ctx.beginPath();
-    ctx.moveTo(x, y + h - 20); // Left wing
-    ctx.lineTo(x - 15, y + h);
-    ctx.lineTo(x + 5, y + h);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(x + w, y + h - 20); // Right wing
-    ctx.lineTo(x + w + 15, y + h);
-    ctx.lineTo(x + w - 5, y + h);
-    ctx.fill();
-    
-    // Flame — scales with speed
-    const flameLen = 20 + (speed * 3) + Math.random() * 10;
-    ctx.fillStyle = '#ff6600';
-    ctx.beginPath();
-    ctx.moveTo(x + w/4, y + h);
-    ctx.lineTo(x + w/2, y + h + flameLen);
-    ctx.lineTo(x + w*3/4, y + h);
-    ctx.fill();
-    // Inner flame
-    if (speed > 4) {
-        ctx.fillStyle = '#ffff66';
+    ctx.fillStyle = options.hairColor;
+    ctx.fillRect(headX + headSize * 0.12, headY - headSize * 0.1, headSize * 0.76, headSize * 0.2);
+    if (options.hairStyle === 'pigtails') {
+        const sway = Math.sin(Date.now() / 160) * 2;
         ctx.beginPath();
-        ctx.moveTo(x + w/3, y + h);
-        ctx.lineTo(x + w/2, y + h + flameLen * 0.6);
-        ctx.lineTo(x + w*2/3, y + h);
+        ctx.arc(headX - 3, headY + headSize * 0.25 + sway, headSize * 0.16, 0, Math.PI * 2);
+        ctx.arc(headX + headSize + 3, headY + headSize * 0.25 - sway, headSize * 0.16, 0, Math.PI * 2);
         ctx.fill();
     }
 
-    // Willy Head (Brown Square)
-    ctx.fillStyle = players.willy.headColor;
-    ctx.fillRect(x + 10, y - 20, 30, 30);
-    
-    // Glasses
-    ctx.strokeStyle = 'black';
-    ctx.lineWidth = 2;
+    ctx.fillStyle = options.headColor;
+    ctx.fillRect(headX, headY, headSize, headSize);
+    ctx.lineWidth = 3;
+    ctx.strokeRect(headX, headY, headSize, headSize);
+
+    ctx.fillStyle = '#120908';
     ctx.beginPath();
-    ctx.arc(x + 18, y - 10, 6, 0, Math.PI*2); // L glass
-    ctx.arc(x + 32, y - 10, 6, 0, Math.PI*2); // R glass
-    ctx.stroke();
-    // Eyes
-    ctx.fillStyle = 'black';
-    ctx.beginPath();
-    ctx.arc(x + 18, y - 10, 2, 0, Math.PI*2); // L pupil
-    ctx.arc(x + 32, y - 10, 2, 0, Math.PI*2); // R pupil
+    ctx.arc(headX + headSize * 0.3, headY + headSize * 0.33, 2.2, 0, Math.PI * 2);
+    ctx.arc(headX + headSize * 0.7, headY + headSize * 0.33, 2.2, 0, Math.PI * 2);
     ctx.fill();
 
-    // Straight mouth
+    ctx.strokeStyle = '#120908';
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
-    ctx.moveTo(x+20, y-2);
-    ctx.lineTo(x+30, y-2);
+    ctx.arc(headX + headSize * 0.5, headY + headSize * 0.52, headSize * 0.18, 0.05, Math.PI - 0.05);
     ctx.stroke();
 
-    // Hat (Blue Triangle)
-    ctx.fillStyle = players.willy.hatColor;
+    ctx.fillStyle = options.hatColor;
     ctx.beginPath();
-    ctx.moveTo(x + 25, y - 35);
-    ctx.lineTo(x + 40, y - 20);
-    ctx.lineTo(x + 10, y - 20);
+    ctx.moveTo(headX + headSize * 0.5, headY - headSize * 0.55);
+    ctx.lineTo(headX + headSize * 0.95, headY);
+    ctx.lineTo(headX + headSize * 0.05, headY);
+    ctx.closePath();
     ctx.fill();
+    ctx.stroke();
+}
+
+function drawRocketBody(x, y, w, h, options) {
+    ctx.save();
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#180b07';
+    ctx.lineWidth = 6;
+
+    drawRocketFlame(x, y, w, h, options.flameOuter, options.flameInner);
+
+    ctx.fillStyle = options.bodyColor;
+    ctx.beginPath();
+    ctx.moveTo(x + w * 0.5, y);
+    ctx.bezierCurveTo(x + w * 0.88, y + h * 0.1, x + w * 0.98, y + h * 0.46, x + w * 0.78, y + h * 0.84);
+    ctx.quadraticCurveTo(x + w * 0.62, y + h * 1.02, x + w * 0.6, y + h);
+    ctx.lineTo(x + w * 0.4, y + h);
+    ctx.quadraticCurveTo(x + w * 0.38, y + h * 1.02, x + w * 0.22, y + h * 0.84);
+    ctx.bezierCurveTo(x + w * 0.02, y + h * 0.46, x + w * 0.12, y + h * 0.1, x + w * 0.5, y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = options.finColor;
+    ctx.beginPath();
+    ctx.moveTo(x + w * 0.24, y + h * 0.58);
+    ctx.lineTo(x - w * 0.06, y + h * 0.82);
+    ctx.lineTo(x + w * 0.26, y + h * 0.88);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(x + w * 0.76, y + h * 0.58);
+    ctx.lineTo(x + w * 1.06, y + h * 0.82);
+    ctx.lineTo(x + w * 0.74, y + h * 0.88);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = options.accentColor;
+    ctx.beginPath();
+    ctx.moveTo(x + w * 0.53, y + h * 0.1);
+    ctx.quadraticCurveTo(x + w * 0.74, y + h * 0.28, x + w * 0.74, y + h * 0.68);
+    ctx.quadraticCurveTo(x + w * 0.68, y + h * 0.84, x + w * 0.58, y + h * 0.95);
+    ctx.lineTo(x + w * 0.48, y + h * 0.95);
+    ctx.quadraticCurveTo(x + w * 0.57, y + h * 0.82, x + w * 0.62, y + h * 0.66);
+    ctx.quadraticCurveTo(x + w * 0.65, y + h * 0.3, x + w * 0.45, y + h * 0.14);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = '#1a1712';
+    ctx.beginPath();
+    ctx.arc(x + w * 0.72, y + h * 0.56, w * 0.15, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = options.windowColor;
+    ctx.beginPath();
+    ctx.arc(x + w * 0.69, y + h * 0.53, w * 0.13, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.beginPath();
+    ctx.arc(x + w * 0.65, y + h * 0.48, w * 0.05, 0, Math.PI * 2);
+    ctx.fill();
+
+    drawKidFace(x, y, w, h, options);
+    ctx.restore();
+}
+
+function drawColletas(x, y, w, h) {
+    drawRocketBody(x, y, w, h, {
+        bodyColor: '#ff2f8e',
+        accentColor: '#ff78be',
+        finColor: '#ff2f8e',
+        windowColor: '#ff5aa7',
+        flameOuter: '#ff8a1d',
+        flameInner: '#ff4fa0',
+        headColor: '#f0a25d',
+        hairColor: '#6d2b15',
+        hairStyle: 'pigtails',
+        hatColor: players.colletas.hatColor
+    });
+}
+
+function drawWilly(x, y, w, h) {
+    drawRocketBody(x, y, w, h, {
+        bodyColor: '#14b8ff',
+        accentColor: '#ff922e',
+        finColor: '#14b8ff',
+        windowColor: '#0b6aa9',
+        flameOuter: '#ff8a1d',
+        flameInner: '#54dcff',
+        headColor: '#efb06f',
+        hairColor: '#4a2510',
+        hairStyle: 'flat',
+        hatColor: players.willy.hatColor
+    });
 }
 
 function drawObstacle(obs) {
