@@ -459,20 +459,16 @@ function update() {
         let hitProcessed = false;
         
         // P1 Hit
-        if (cx > players.colletas.x - r && cx < players.colletas.x + players.colletas.width + r &&
+        if (invulnP1 <= 0 && cx > players.colletas.x - r && cx < players.colletas.x + players.colletas.width + r &&
             cy > players.colletas.y - r && cy < players.colletas.y + players.colletas.height + r) {
-            if (obstacles[i].type !== 'meteorite' || invulnP1 <= 0) {
-                handleCollision(1, obstacles[i]);
-                hitProcessed = true;
-            }
+            handleCollision(1, obstacles[i]);
+            hitProcessed = true;
         }
         // P2 Hit (if not already hit by P1)
-        if (!hitProcessed && cx > players.willy.x - r && cx < players.willy.x + players.willy.width + r &&
+        if (!hitProcessed && invulnP2 <= 0 && cx > players.willy.x - r && cx < players.willy.x + players.willy.width + r &&
             cy > players.willy.y - r && cy < players.willy.y + players.willy.height + r) {
-            if (obstacles[i].type !== 'meteorite' || invulnP2 <= 0) {
-                handleCollision(2, obstacles[i]);
-                hitProcessed = true;
-            }
+            handleCollision(2, obstacles[i]);
+            hitProcessed = true;
         }
 
         // Remove if hit or offscreen
