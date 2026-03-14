@@ -927,7 +927,6 @@ window.onload = () => {
     // Click handler to start the game
     startBtn.addEventListener('click', () => {
         startScreen.classList.add('hidden');
-        resetGame(); // Ensure state is fresh
         showCountdown(); // Start the game flow
     });
 };
