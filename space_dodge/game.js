@@ -22,18 +22,33 @@ const btnPause = document.getElementById('btn-pause');
 
 // Game State
 let gameState = 'START'; // START, PLAYING, PAUSED, GAMEOVER, VICTORY
-let distance = 0;
-let distanceToEarth = 10000;
-let speed = 4;
+let timeLeft = 60;
+let scoreP1 = 0;
+let scoreP2 = 0;
+let speed = 2.5; // Starts slower for kids
 let animationId;
+let lastTimeUpdate = 0;
+let invulnP1 = 0;
+let invulnP2 = 0;
 
-// Audio System (Web Audio API for Retro Sounds)
+// Audio System (MP3 for BGM, Web Audio API for SFX)
+const bgMusic = new Audio('music.mp3');
+bgMusic.loop = true;
+bgMusic.volume = 0.6;
+const crashMp3 = new Audio('crash.wav');
+
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 let bgmOscillator = null;
 
 function playSound(type) {
     if (audioCtx.state === 'suspended') audioCtx.resume();
     
+    if (type === 'crash') {
+        crashMp3.currentTime = 0;
+        crashMp3.play().catch(e => console.log(e));
+        return;
+    }
+
     const osc = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
     osc.connect(gainNode);
@@ -50,15 +65,6 @@ function playSound(type) {
         gainNode.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
         osc.start(now);
         osc.stop(now + 1.5);
-    } else if (type === 'crash') {
-        // Explosion noise
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(100, now);
-        osc.frequency.exponentialRampToValueAtTime(0.01, now + 0.5);
-        gainNode.gain.setValueAtTime(0.5, now);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-        osc.start(now);
-        osc.stop(now + 0.5);
     } else if (type === 'win') {
         // Happy arpeggio
         osc.type = 'sine';
@@ -74,33 +80,12 @@ function playSound(type) {
 }
 
 function startBGM() {
-    if (bgmOscillator) return;
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    
-    bgmOscillator = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
-    const filter = audioCtx.createBiquadFilter();
-
-    bgmOscillator.type = 'square';
-    bgmOscillator.frequency.value = 100; // Low hum
-    
-    filter.type = 'lowpass';
-    filter.frequency.value = 400;
-
-    gainNode.gain.value = 0.05; // Quiet
-
-    bgmOscillator.connect(filter);
-    filter.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-    
-    bgmOscillator.start();
+    // We use the MP3 instead of synthesized oscillator
+    bgMusic.play().catch(e => console.log('BGM restricted by browser', e));
 }
 
 function stopBGM() {
-    if (bgmOscillator) {
-        bgmOscillator.stop();
-        bgmOscillator = null;
-    }
+    bgMusic.pause();
 }
 
 // Entities
@@ -177,11 +162,16 @@ function togglePause() {
 
 function startGame() {
     // Reset State
-    distance = 0;
-    speed = 4;
+    timeLeft = 60;
+    scoreP1 = 0;
+    scoreP2 = 0;
+    speed = 2.5; // Easier for kids
     obstacles = [];
     moon.y = 550;
     earth.y = -200;
+    invulnP1 = 0;
+    invulnP2 = 0;
+    lastTimeUpdate = Date.now();
     
     players.colletas.x = 250;
     players.willy.x = 500;
@@ -196,6 +186,7 @@ function startGame() {
     if (audioCtx.state === 'suspended') {
         audioCtx.resume();
     }
+    bgMusic.currentTime = 0;
     
     playSound('start');
     startBGM();
@@ -203,13 +194,22 @@ function startGame() {
 }
 
 function spawnObstacle() {
-    if (Math.random() < 0.03 + (distance / 100000)) { // Gets harder over time
+    // Base difficulty 1% chance per frame. At 30s left, 1.5%. At 0s, 2%. Very gentle curve for kids.
+    const difficultyProgress = (60 - timeLeft) / 60; 
+    const spawnChance = 0.01 + (difficultyProgress * 0.015);
+    
+    if (Math.random() < spawnChance) { 
         const size = Math.random() * 30 + 20;
+        let rng = Math.random();
+        let obsType = 'meteorite';
+        if (rng > 0.9) obsType = 'ufo';
+        else if (rng > 0.8) obsType = 'star';
+        
         obstacles.push({
             x: Math.random() * (canvas.width - size),
             y: -50,
             radius: size,
-            type: Math.random() > 0.1 ? 'meteorite' : 'star' // Mostly meteorites, some stars
+            type: obsType
         });
     }
 }
@@ -314,6 +314,18 @@ function drawMeteorite(obs) {
         ctx.fill();
         return;
     }
+    if (obs.type === 'ufo') {
+        // Draw UFO
+        ctx.fillStyle = '#33cc33'; // green dome
+        ctx.beginPath();
+        ctx.arc(obs.x, obs.y - obs.radius/4, obs.radius/1.5, Math.PI, 0);
+        ctx.fill();
+        ctx.fillStyle = '#cccccc'; // silver saucer
+        ctx.beginPath();
+        ctx.ellipse(obs.x, obs.y + obs.radius/4, obs.radius, obs.radius/4, 0, 0, Math.PI*2);
+        ctx.fill();
+        return;
+    }
 
     // Grey Meteorite
     ctx.fillStyle = '#666666';
@@ -389,19 +401,28 @@ function drawEarth() {
 }
 
 function update() {
-    // Increase distance
-    distance += speed / 5;
+    let now = Date.now();
+    let dt = (now - lastTimeUpdate) / 1000;
+    lastTimeUpdate = now;
+
+    if (timeLeft > 0) {
+        timeLeft -= dt;
+        if (timeLeft <= 0) {
+            timeLeft = 0;
+        }
+    }
     
-    // Increase speed slightly
-    if (speed < 15) speed += 0.002;
+    // Gentle progressive speed increase over the 60 seconds
+    const difficultyProgress = (60 - timeLeft) / 60;
+    speed = 2.5 + (difficultyProgress * 4); 
 
     // Scroll moon down
     if (moon.y < canvas.height + 200) {
         moon.y += speed * 0.5;
     }
 
-    // Scroll earth down if at end
-    if (distance > distanceToEarth && earth.y < 150) {
+    // Scroll earth down and win when timer reaches 0
+    if (timeLeft <= 0 && earth.y < 150) {
         earth.y += speed * 0.3;
         speed *= 0.98; // slow down
         
@@ -418,8 +439,12 @@ function update() {
     if (players.willy.isLeft && players.willy.x > 0) players.willy.x -= players.willy.speed;
     if (players.willy.isRight && players.willy.x < canvas.width - players.willy.width) players.willy.x += players.willy.speed;
 
+    // Decrease invulnerability frames
+    if (invulnP1 > 0) invulnP1 -= dt;
+    if (invulnP2 > 0) invulnP2 -= dt;
+
     // Obstacles Update
-    if (distance < distanceToEarth) {
+    if (timeLeft > 0) {
         spawnObstacle();
     }
 
@@ -429,21 +454,29 @@ function update() {
         // Collision Check (Simple Circle to Rect)
         let cx = obstacles[i].x;
         let cy = obstacles[i].y;
-        let r = obstacles[i].radius * 0.8; // forgiving hitbox
+        let r = obstacles[i].radius * 0.7; // very forgiving hitbox for kids
+        
+        let hitProcessed = false;
         
         // P1 Hit
         if (cx > players.colletas.x - r && cx < players.colletas.x + players.colletas.width + r &&
             cy > players.colletas.y - r && cy < players.colletas.y + players.colletas.height + r) {
-            triggerGameOver();
+            if (obstacles[i].type !== 'meteorite' || invulnP1 <= 0) {
+                handleCollision(1, obstacles[i]);
+                hitProcessed = true;
+            }
         }
-        // P2 Hit
-        if (cx > players.willy.x - r && cx < players.willy.x + players.willy.width + r &&
+        // P2 Hit (if not already hit by P1)
+        if (!hitProcessed && cx > players.willy.x - r && cx < players.willy.x + players.willy.width + r &&
             cy > players.willy.y - r && cy < players.willy.y + players.willy.height + r) {
-            triggerGameOver();
+            if (obstacles[i].type !== 'meteorite' || invulnP2 <= 0) {
+                handleCollision(2, obstacles[i]);
+                hitProcessed = true;
+            }
         }
 
-        // Remove offscreen
-        if (obstacles[i].y > canvas.height + 100) {
+        // Remove if hit or offscreen
+        if (hitProcessed || obstacles[i].y > canvas.height + 100) {
             obstacles.splice(i, 1);
             i--;
         }
@@ -453,6 +486,24 @@ function update() {
     for(let i=0; i<stars.length; i++){
         stars[i].y += stars[i].speed;
         if(stars[i].y > canvas.height) stars[i].y = 0;
+    }
+}
+
+function handleCollision(playerNum, obs) {
+    if (gameState !== 'PLAYING') return;
+
+    if (obs.type === 'ufo') {
+        playSound('win'); // Collect sound
+        if (playerNum === 1) scoreP1 += 20;
+        if (playerNum === 2) scoreP2 += 20;
+    } else if (obs.type === 'star') {
+        playSound('win'); // Collect sound
+        if (playerNum === 1) scoreP1 += 10;
+        if (playerNum === 2) scoreP2 += 10;
+    } else { // meteorite
+        playSound('crash');
+        if (playerNum === 1) { scoreP1 = Math.max(0, scoreP1 - 5); invulnP1 = 2.0; }
+        if (playerNum === 2) { scoreP2 = Math.max(0, scoreP2 - 5); invulnP2 = 2.0; }
     }
 }
 
@@ -468,8 +519,13 @@ function draw() {
     drawEarth();
     drawMoon();
     
-    drawColletas(players.colletas.x, players.colletas.y, players.colletas.width, players.colletas.height);
-    drawWilly(players.willy.x, players.willy.y, players.willy.width, players.willy.height);
+    // Blinking effect if invincible
+    if (invulnP1 <= 0 || Math.floor(Date.now() / 150) % 2 === 0) {
+        drawColletas(players.colletas.x, players.colletas.y, players.colletas.width, players.colletas.height);
+    }
+    if (invulnP2 <= 0 || Math.floor(Date.now() / 150) % 2 === 0) {
+        drawWilly(players.willy.x, players.willy.y, players.willy.width, players.willy.height);
+    }
 
     for (let i = 0; i < obstacles.length; i++) {
         drawMeteorite(obstacles[i]);
@@ -479,7 +535,15 @@ function draw() {
     ctx.fillStyle = '#ffffff';
     ctx.font = '24px "Fredoka One"';
     ctx.textAlign = 'left';
-    ctx.fillText(`Distance: ${Math.floor(distance)} km`, 20, 30);
+    ctx.fillText(`Time: ${Math.ceil(timeLeft)}s`, 20, 30);
+    
+    // Draw Scores
+    ctx.textAlign = 'right';
+    ctx.fillStyle = players.colletas.color;
+    ctx.fillText(`Colletas Pts: ${scoreP1}`, canvas.width - 20, 30);
+    
+    ctx.fillStyle = players.willy.color;
+    ctx.fillText(`Willy Pts: ${scoreP2}`, canvas.width - 20, 60);
     
     if (gameState === 'PAUSED') {
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
@@ -491,10 +555,10 @@ function draw() {
 }
 
 function triggerGameOver() {
+    // GameOver no longer used because of the 60s rule
     gameState = 'GAMEOVER';
     stopBGM();
-    playSound('crash');
-    finalScoreEl.innerText = `Distance: ${Math.floor(distance)} km`;
+    finalScoreEl.innerText = `Time Survived: ${60 - Math.ceil(timeLeft)}s`;
     gameOverScreen.classList.remove('hidden');
 }
 
@@ -502,7 +566,12 @@ function triggerVictory() {
     gameState = 'VICTORY';
     stopBGM();
     playSound('win');
-    winScoreEl.innerText = `Landed successfully!`;
+    
+    let winnerText = "It's a Tie!";
+    if (scoreP1 > scoreP2) winnerText = "Colletas Wins!";
+    else if (scoreP2 > scoreP1) winnerText = "Willy Wins!";
+    
+    winScoreEl.innerHTML = `Landed safely in NYC!<br><br>${winnerText}<br>Colletas: ${scoreP1} | Willy: ${scoreP2}`;
     victoryScreen.classList.remove('hidden');
 }
 
