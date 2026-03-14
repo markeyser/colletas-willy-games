@@ -70,6 +70,41 @@ p {
     color: #e0e6ed;
 }
 
+.rules-box {
+    background: rgba(255,255,255,0.08);
+    border: 2px solid rgba(255,255,255,0.15);
+    border-radius: 14px;
+    padding: 14px 22px;
+    margin: 12px auto;
+    max-width: 380px;
+    text-align: left;
+}
+
+.rules-title {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #ffd700;
+    text-align: center;
+    margin-bottom: 8px;
+}
+
+.rule-item {
+    font-size: 1.05rem;
+    margin: 4px 0;
+}
+
+.rules-tip {
+    font-size: 0.95rem;
+    color: #aab;
+    text-align: center;
+    margin-top: 10px;
+    margin-bottom: 0;
+}
+
+.bad { color: #ff4466; font-weight: bold; }
+.good { color: #33ff66; font-weight: bold; }
+.great { color: #ffd700; font-weight: bold; }
+
 .desktop-text { display: block; }
 .mobile-text { display: none; color: #4dc3ff; }
 
