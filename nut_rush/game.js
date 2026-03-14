@@ -74,9 +74,9 @@ let hsNutWilly = parseInt(localStorage.getItem('nutRush_hsWilly') || '0');
 
 // --- Parallax Forest ---
 const parallaxLayers = [
-    { y: CANVAS_HEIGHT - 120, speed: 0.1, color: '#2e7d32', height: 100 }, // Back hills
-    { y: CANVAS_HEIGHT - 80, speed: 0.3, color: '#388e3c', height: 80 },  // Mid trees
-    { y: CANVAS_HEIGHT - 40, speed: 0.6, color: '#43a047', height: 60 }   // Front grass
+    { y: CANVAS_HEIGHT - 120, speed: 0.02, color: '#2e7d32', height: 100 }, // Back hills (Very slow)
+    { y: CANVAS_HEIGHT - 80, speed: 0.06, color: '#388e3c', height: 80 },  // Mid trees
+    { y: CANVAS_HEIGHT - 40, speed: 0.12, color: '#43a047', height: 60 }   // Front grass
 ];
 
 // --- Player Objects ---
@@ -650,12 +650,12 @@ function togglePause() {
     pauseIndicatorDisplay.style.display = isPaused ? 'block' : 'none';
 
     if (isPaused) {
-         // if (music) music.pause(); // Uncomment for background music
+         if (music) music.pause(); // Stop music when paused
          // Stop game intervals/timeouts that need pausing (timer already checks isPaused)
          // If using setTimeout for spawning, clear it here and restart on unpause
          cancelAnimationFrame(gameLoopId); // Stop the main loop
     } else {
-         // if (music && !isGameOver) music.play(); // Uncomment for background music
+         if (music && !isGameOver) music.play().catch(e => console.log("Music resume failed:", e)); // Resume music
          // Resume game intervals/timeouts
          requestAnimationFrame(gameLoop); // Restart the main loop
     }
@@ -719,11 +719,11 @@ function startGame() {
     // Start timer
     timerInterval = setInterval(updateTimer, 1000);
 
-    // Start background music (optional)
-    // if (music) {
-    //     music.currentTime = 0;
-    //     music.play().catch(e => console.log("Music play failed:", e));
-    // }
+    // Start background music
+    if (music) {
+        music.currentTime = 0;
+        music.play().catch(e => console.log("Music play failed:", e));
+    }
 
     // Start game loop
     if (gameLoopId) cancelAnimationFrame(gameLoopId); // Ensure no previous loop runs
@@ -737,8 +737,8 @@ function endGame() {
     if (gameLoopId) cancelAnimationFrame(gameLoopId); // Stop the loop
     gameLoopId = null;
 
-    // Stop music (optional)
-    // if (music) music.pause();
+    // Stop music
+    if (music) music.pause();
 
     // Display Game Over message
     const winnerText = determineWinner();
