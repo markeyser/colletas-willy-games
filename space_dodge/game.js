@@ -379,7 +379,7 @@ function drawMoon() {
 }
 
 function drawEarth() {
-    if (distance < distanceToEarth - 1000) return; // Don't draw till end
+    if (timeLeft > 5) return; // Don't draw till final 5 seconds
 
     // Earth Base
     ctx.fillStyle = '#0066ff';
