@@ -8,14 +8,18 @@ A collection of fun, family-friendly web games designed to be played across mult
    - Catch the falling nuts before time runs out! Watch out for rocks and rotten nuts.
 2. **Candy Coaster** (`/candy_coaster/`)
    - Steer your cart and snag cloud candies on a fast-paced rollercoaster ride!
+3. **Space Dodge** (`/space_dodge/`)
+   - Dodge meteorites and return to Earth!
+4. **Shark Surf** (`/shark_surf/`)
+   - Surf the waves, catch jumping fish, and avoid sharks, coconuts, breaking waves, and tsunamis.
 
 ## Controls
 
 Both games support automatic control switching based on the device:
 
 ### Desktop (Keyboard)
-*   **Player 1 (Collets):** `A` and `D` keys.
-*   **Player 2 (Willy):** `Left Arrow` and `Right Arrow` keys.
+*   **Player 1 (Collets/Colletas):** `A` and `D` keys. In Shark Surf, `W` moves up/jumps and `S` moves down.
+*   **Player 2 (Willy):** `Left Arrow` and `Right Arrow` keys. In Shark Surf, `Up Arrow` moves up/jumps and `Down Arrow` moves down.
 *   **Pause:** `P` key.
 
 ### iPad / Tablet (Touch)

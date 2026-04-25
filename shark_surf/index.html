@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Shark Surf</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="game-app" id="game-app">
+        <header class="hud">
+            <a class="home-link" href="../index.html" aria-label="Back to games">←</a>
+            <div class="score-chip score-chip-colletas">
+                <span>Colletas</span>
+                <strong id="score-colletas">0</strong>
+            </div>
+            <div class="timer-chip">
+                <span id="timer">75</span>
+            </div>
+            <div class="score-chip score-chip-willy">
+                <span>Willy</span>
+                <strong id="score-willy">0</strong>
+            </div>
+        </header>
+
+        <section class="stage" aria-label="Shark Surf game area">
+            <canvas id="gameCanvas" width="960" height="620"></canvas>
+
+            <div class="overlay" id="start-screen">
+                <div class="overlay-panel">
+                    <h1>Shark Surf</h1>
+                    <p class="tagline">Ride waves, catch fish, and stay away from bitey sharks.</p>
+                    <div class="mini-rules" aria-label="Game scoring">
+                        <span class="good">Fish +25</span>
+                        <span class="good">Long ride +</span>
+                        <span class="bad">Coconut -10</span>
+                        <span class="bad">Shark -25</span>
+                        <span class="bad">Tsunami -45</span>
+                    </div>
+                    <p class="keys">Colletas: A D W S · Willy: ← → ↑ ↓</p>
+                    <button class="primary-btn" id="start-btn">Start Surfing</button>
+                </div>
+            </div>
+
+            <div class="overlay is-hidden" id="game-over-screen">
+                <div class="overlay-panel">
+                    <h2 id="winner-title">Surf's Up!</h2>
+                    <p id="final-scores"></p>
+                    <button class="primary-btn" id="restart-btn">Surf Again</button>
+                </div>
+            </div>
+
+            <div class="surf-banner" id="surf-banner" aria-live="polite"></div>
+        </section>
+
+        <nav class="touch-controls" aria-label="Touch controls">
+            <div class="pad pad-colletas" aria-label="Colletas controls">
+                <button class="touch-btn" id="p1-left" aria-label="Colletas left">←</button>
+                <button class="touch-btn jump" id="p1-jump" aria-label="Colletas up and jump">↑</button>
+                <button class="touch-btn down" id="p1-down" aria-label="Colletas down">↓</button>
+                <button class="touch-btn" id="p1-right" aria-label="Colletas right">→</button>
+            </div>
+            <button class="touch-btn pause" id="pause-btn" aria-label="Pause">Ⅱ</button>
+            <div class="pad pad-willy" aria-label="Willy controls">
+                <button class="touch-btn" id="p2-left" aria-label="Willy left">←</button>
+                <button class="touch-btn jump" id="p2-jump" aria-label="Willy up and jump">↑</button>
+                <button class="touch-btn down" id="p2-down" aria-label="Willy down">↓</button>
+                <button class="touch-btn" id="p2-right" aria-label="Willy right">→</button>
+            </div>
+        </nav>
+    </main>
+
+    <script src="game.js"></script>
+</body>
+</html>
